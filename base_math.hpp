@@ -58,7 +58,6 @@ inline Simpl unpack_vector(const std::vector<typename Simpl::value_type>& vec, s
     Simpl simpl(vec[S]...);
     return simpl;
 }
-
 template <int I, int N1, typename IN, typename T>
 struct for_one {
 private:

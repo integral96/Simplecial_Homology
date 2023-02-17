@@ -20,6 +20,7 @@
 #include <boost/hana/at.hpp>
 #include <boost/hana/traits.hpp>
 #include <boost/core/typeinfo.hpp>
+#include <boost/hana/count.hpp>
 #include <variant>
 #include <any>
 
@@ -43,6 +44,13 @@ public:
         out << boost::core::demangled_name(ti) << std::endl;
     }
 };
+
+template<class Vect, size_t... S>
+inline auto unpack_to_tuple(const Vect& vec, std::index_sequence<S...>) {
+//    Simpl simpl(vec[S]...);
+    return hana::make_tuple(vec[S]...);
+}
+
 
 template<typename ...Args>
 inline auto make_complex(Args&&... args) {
@@ -99,14 +107,13 @@ public:
     Simplicial_complex(Complex& complex_) : complex(complex_) {}
     template<int N>
     auto get_complex() const {
-
         constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
         const auto ret = hana::filter(hana::at(this->complex, hana::size_c<2>), is_Ng);
         hana::for_each(ret, [&](auto x) {
             std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
         });
         std::cout << std::endl;
-        return hana::make_pair(N, ret);
+        return ret;
     }
     friend std::ostream& operator << (std::ostream& out, const Simplicial_complex& cmpl) {
         hana::for_each(cmpl.get_complex_type(), print_type(out));
@@ -118,19 +125,16 @@ public:
         return out;
     }
 };
-template<int N, class Complex_N>
+template<int N, class Complex_N, class Vec_spc>
 class boundary {
     const Complex_N& complex;
-    using subsimplex_type = Simplex<N - 1, Vector_space<N - 1, int > >;
+    using subsimplex_type = Simplex<N - 1, Vec_spc >;
+    std::vector<subsimplex_type> vector;
 public:
     boundary(const Complex_N& complex_) : complex(complex_) {
-//        constexpr auto N = hana::first(complex);
-        const auto simplex_N = hana::second(complex);
-
-        std::vector<subsimplex_type> vector;
         subsimplex_type sad;
         int sd{};
-        hana::for_each(simplex_N, [&](auto& x) {
+        hana::for_each(complex, [&](auto& x) {
             auto tnp = x.boundary_sub();
             fusion::for_each(tnp, [](auto y) {
                 std::cout << y << '\n';
@@ -143,15 +147,13 @@ public:
                 if(dth != z) dth = dth + dth1*std::pow(-1, j);
                 j++;
             });
-//            std::any cele;
-//            cele.emplace<decltype(dth)>(dth);
-            std::cout << typeid(dth).name() << std::endl;
-            std::cout << typeid(sad).name() << std::endl;
-//            sad = dth;
+            vector.emplace_back(dth);
             std::cout << dth << '\n';
             std::cout <<  '\n';
         });
-//        std::for_each(vector.cbegin(), vector.cend(), [](auto const& c) { std::cout << c << ' '; });
+    }
+    auto get() const {
+        return unpack_to_tuple(vector, std::make_index_sequence<2>());
     }
 };
 
