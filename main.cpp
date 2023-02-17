@@ -2,7 +2,7 @@
 
 #include "Simplicial_complex.hpp"
 #include "Vector_space.hpp"
-static constexpr int N = 4;
+static constexpr int N = 3;
 int main()
 {
     Vector_space<4, int> d0(0, 0, 0, 0);
@@ -36,15 +36,17 @@ int main()
     Simplex<0, Vector_space<1, int>> simplex0D_1(c0*2);
     Simplex<0, Vector_space<1, int>> simplex0D_2(c0*2);
 
-    auto tmp = (simplex3D_0 - simplex3D_1);
-    auto tmp1 = (simplex3D_1 - simplex3D_0);
+
     std::cout << "START MAKE COMPLEX" << std::endl;
     auto complex = make_complex(simplex4D_0, simplex4D_1, simplex3D_0, simplex3D_1, simplex2D_0, simplex2D_1, simplex1D_0, simplex0D_1, simplex0D_2);
     std::cout << "END MAKE COMPLEX" << std::endl;
     std::cout << "GET COMPLEX DIMENTION = " << N << std::endl;
     Simplicial_complex complex_simpl(complex);
-    complex_simpl.get_complex<N>();
+    std::cout << complex_simpl << std::endl;
+    const auto compl_N = complex_simpl.get_complex<N>();
     std::cout << "END COMPLEX DIMENTION = " << N << std::endl;
+    std::cout << "GET COMPLEX BOUNDARY: " << std::endl;
+    boundary<N, decltype(compl_N)> bndr(compl_N);
 //    simplex3D.boundary();
 //    simplex2D.boundary();
 //    auto tmp3 = simplex3D.boundary()*simplex2D.boundary();

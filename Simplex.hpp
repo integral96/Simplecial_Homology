@@ -40,23 +40,26 @@ inline void boundary_all(const IN& simplex_) {
     std::cout << std::endl;
 }
 
-template <int N, typename Simpl>
+template<int N, typename T>
+struct Simplex;
+
+template <int N, typename T>
 struct Chain
 {
-    Simpl simplex1;
-    Simpl simplex2;
-    char operat;
+    using simpl_type = Simplex<N - 1, T>;
+    using gen_vector_simpl_t = boost::mp11::mp_repeat_c<fusion::vector<simpl_type>, N + 1>;
+private:
+    gen_vector_simpl_t& sub_simpleces;
+public:
     Chain() {}
-    Chain(const Simpl& simplex1) : simplex1(simplex1) {
-    }
-    Chain(const Simpl& simplex1, char operat, const Simpl& simplex2) : simplex1(simplex1), operat(operat), simplex2(simplex2) {
+    Chain(gen_vector_simpl_t& sub_simpleces_) : sub_simpleces(sub_simpleces_) {
     }
     friend std::ostream& operator << (std::ostream& o, const Chain& s) {
-        Simpl dff;
         o << "[ ";
-        if(s.simplex2 == dff) o << s.simplex1;
-        else o << s.simplex1 << " " << s.operat << " " << s.simplex2;
-        o << " ]";
+        fusion::for_each(s.sub_simpleces, [&o](auto x) {
+            o << x << ' ';
+        });
+        o << " ] ";
         return o;
     }
 };
@@ -105,6 +108,7 @@ inline void predicate_all(const IN& simplex1_, const IN& simplex2_, int& index) 
 template<int N, typename T>
 struct Simplex {
     using value_type = T;
+    using ring_type  = typename T::value_type;
     using simpl_type = Simplex<N - 1, T>;
     static constexpr int dim = N;
 private:
@@ -113,7 +117,7 @@ private:
     gen_vector_t simplex_vertex;
     gen_vector_simpl_t sub_simplex;
 public:
-    Simplex() {};
+    Simplex() {}
     template<typename ...Args, typename = std::enable_if_t<(sizeof... (Args) == N + 1) && is_same_v_<T, remove_cvref_t<Args>...>>>
     Simplex(Args&&... args) : simplex_vertex(fusion::make_vector(std::forward<Args>(args)...)) {
         for_all<N + 1, N + 1, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
@@ -131,21 +135,39 @@ public:
     boundary_chain<N, gen_vector_simpl_t> boundary() {
         return boundary_chain<N, gen_vector_simpl_t>(sub_simplex);
     }
-    //operators==================================================================
-    Chain<N, Simplex> operator + (const Simplex& other) {
-        if(*this == other) {
-            return Chain<N, Simplex>(*this);
-        } else {
-            return Chain<N, Simplex>(*this, '+', other);
-        }
+    gen_vector_simpl_t  boundary_sub() const {
+        return sub_simplex;
     }
     //operators==================================================================
-    Chain<N, Simplex> operator - (const Simplex& other) {
-        if(*this == other) {
-            return Chain<N, Simplex>();
-        } else {
-            return Chain<N, Simplex>(*this, '-', other);
-        }
+    Simplex& operator = (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x = y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator + (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x += y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator * (ring_type other) {
+        fusion::for_each(simplex_vertex, [&other](auto& x) {
+            x *= other;
+        });
+        return *this;
     }
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
@@ -169,6 +191,7 @@ public:
 template<typename T>
 struct Simplex<2, T> {
     using value_type = T;
+    using ring_type  = typename T::value_type;
     using simpl_type = Simplex<1, T>;
     static constexpr int dim = 2;
 private:
@@ -177,7 +200,7 @@ private:
     gen_vector_t simplex_vertex;
     gen_vector_simpl_t sub_simplex;
 public:
-    Simplex(){};
+    Simplex(){}
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
     Simplex(F&& arg1, F&& arg2, F&& arg3) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                             std::forward<F>(arg2),
@@ -193,13 +216,39 @@ public:
     boundary_chain<2, gen_vector_simpl_t>  boundary() {
         return boundary_chain<2, gen_vector_simpl_t>(sub_simplex);
     }
+    gen_vector_simpl_t  boundary_sub()  const {
+        return sub_simplex;
+    }
     //operators==================================================================
-    Chain<2, Simplex> operator + (const Simplex& other) {
-        if(*this == other) {
-            return Chain<2, Simplex>(*this);
-        } else {
-            return Chain<2, Simplex>(*this, '+', other);
-        }
+    Simplex& operator = (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x = y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator + (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x += y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator * (ring_type other) {
+        fusion::for_each(simplex_vertex, [&other](auto& x) {
+            x *= other;
+        });
+        return *this;
     }
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
@@ -222,6 +271,7 @@ public:
 template<typename T>
 struct Simplex<1, T> {
     using value_type = T;
+    using ring_type  = typename T::value_type;
     using simpl_type = Simplex<0, T>;
     static constexpr int dim = 1;
 private:
@@ -230,7 +280,7 @@ private:
     gen_vector_t simplex_vertex;
     gen_vector_simpl_t sub_simplex;
 public:
-    Simplex(){};
+    Simplex(){}
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
     Simplex(F&& arg1, F&& arg2) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                   std::forward<F>(arg2))) {
@@ -245,13 +295,39 @@ public:
     boundary_chain<1, gen_vector_simpl_t>  boundary() {
         return boundary_chain<1, gen_vector_simpl_t>(sub_simplex);
     }
+    gen_vector_simpl_t  boundary_sub() const {
+        return sub_simplex;
+    }
     //operators==================================================================
-    Chain<1, Simplex> operator + (const Simplex& other) {
-        if(*this == other) {
-            return Chain<1, Simplex>(*this);
-        } else {
-            return Chain<1, Simplex>(*this, '+', other);
-        }
+    Simplex& operator = (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x = y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator + (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x += y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator * (ring_type other) {
+        fusion::for_each(simplex_vertex, [&other](auto& x) {
+            x *= other;
+        });
+        return *this;
     }
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
@@ -274,13 +350,14 @@ public:
 template<typename T>
 struct Simplex<0, T> {
     using value_type = T;
+    using ring_type  = typename T::value_type;
     using simpl_type = Simplex<-1, T>;
     static constexpr int dim = 0;
 private:
     fusion::vector<T> simplex_vertex;
     fusion::vector<simpl_type> sub_simplex;
 public:
-    Simplex(){};
+    Simplex(){}
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
     Simplex(F&& arg1) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1))) {
         sub_simplex = fusion::make_vector(simpl_type(arg1));
@@ -294,13 +371,39 @@ public:
     boundary_chain<0, fusion::vector<simpl_type>>  boundary() {
         return boundary_chain<0, fusion::vector<simpl_type>>(sub_simplex);
     }
+    fusion::vector<simpl_type>  boundary_sub() const {
+        return sub_simplex;
+    }
     //operators==================================================================
-    Chain<0, Simplex> operator + (const Simplex& other) {
-        if(*this == other) {
-            return Chain<0, Simplex>(*this);
-        } else {
-            return Chain<0, Simplex>(*this, '+', other);
-        }
+    Simplex& operator = (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x = y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator + (Simplex& other) {
+        int I = 0;
+        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x += y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    Simplex& operator * (ring_type other) {
+        fusion::for_each(simplex_vertex, [&other](auto& x) {
+            x *= other;
+        });
+        return *this;
     }
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
@@ -324,13 +427,11 @@ template<typename T>
 struct Simplex<-1, T> {
     using value_type = T;
     static constexpr int dim = -1;
-    Simplex(){};
+    Simplex(){}
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
     Simplex(F arg1 = F())  {
 //        std::cout << "AUGUMENTACIA" << std::endl;
     }
 };
-
-
 
 #endif // SIMPLEX_HPP

@@ -21,8 +21,10 @@
 #include <boost/hana/traits.hpp>
 #include <boost/core/typeinfo.hpp>
 #include <variant>
+#include <any>
 
 #include "Simplex.hpp"
+#include "Vector_space.hpp"
 
 
 namespace hana = boost::hana;
@@ -30,11 +32,15 @@ namespace mpl  = boost::mpl;
 
 struct print_type
 {
+private:
+    std::ostream& out;
+public:
+    print_type(std::ostream& out_) : out(out_) {}
     template <class T>
     void operator() (T) const
     {
         auto const& ti = BOOST_CORE_TYPEID(T);
-        std::cout << boost::core::demangled_name(ti) << std::endl;
+        out << boost::core::demangled_name(ti) << std::endl;
     }
 };
 
@@ -43,16 +49,7 @@ inline auto make_complex(Args&&... args) {
     constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);
     constexpr auto complex_dim  = hana::make<hana::tuple_tag>(hana::int_c<std::decay_t<Args>::dim>...);
     auto complex = hana::make<hana::tuple_tag>(std::forward<Args>(args)...);
-    hana::for_each(complex_type, print_type());
-    hana::for_each(complex_dim, [&](auto x) {
-        std::cout << "Simplex dim = " << x << '\n';
-    });
-    std::cout << std::endl;
-//    hana::for_each(complex, [&](auto x) {
-//        if constexpr(decltype(x)::dim == 2)
-//        std::cout << x << ' ';
-//    });
-    std::cout << std::endl;
+
     return hana::make_tuple(complex_type, complex_dim, complex);
 }
 template <class _Ty, _Ty _Val>
@@ -89,18 +86,72 @@ private:
          template <class _Ty>
          struct is_N : bool_constant<is_N_v<_Ty, N>> {};
      };
-
+     constexpr auto get_complex_type() const {
+         return hana::at(this->complex, hana::size_c<0>);
+     }
+     constexpr auto get_complex_dim() const {
+         return hana::at(this->complex, hana::size_c<1>);
+     }
+     constexpr auto get_complex_() const {
+         return hana::at(this->complex, hana::size_c<2>);
+     }
 public:
     Simplicial_complex(Complex& complex_) : complex(complex_) {}
     template<int N>
     auto get_complex() const {
 
-        constexpr auto is_N__ = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
-        auto ret = hana::filter(hana::at(this->complex, hana::size_c<2>), is_N__);
+        constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
+        const auto ret = hana::filter(hana::at(this->complex, hana::size_c<2>), is_Ng);
         hana::for_each(ret, [&](auto x) {
             std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
         });
         std::cout << std::endl;
+        return hana::make_pair(N, ret);
+    }
+    friend std::ostream& operator << (std::ostream& out, const Simplicial_complex& cmpl) {
+        hana::for_each(cmpl.get_complex_type(), print_type(out));
+        out << std::endl;
+        hana::for_each(cmpl.get_complex_(), [&](auto x) {
+            out << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
+        });
+        out << std::endl;
+        return out;
+    }
+};
+template<int N, class Complex_N>
+class boundary {
+    const Complex_N& complex;
+    using subsimplex_type = Simplex<N - 1, Vector_space<N - 1, int > >;
+public:
+    boundary(const Complex_N& complex_) : complex(complex_) {
+//        constexpr auto N = hana::first(complex);
+        const auto simplex_N = hana::second(complex);
+
+        std::vector<subsimplex_type> vector;
+        subsimplex_type sad;
+        int sd{};
+        hana::for_each(simplex_N, [&](auto& x) {
+            auto tnp = x.boundary_sub();
+            fusion::for_each(tnp, [](auto y) {
+                std::cout << y << '\n';
+            });
+            std::cout <<  '\n';
+            int p{};
+            auto dth = fusion::at<mpl::int_<0>>(tnp);
+            fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
+                auto dth1 = z;
+                if(dth != z) dth = dth + dth1*std::pow(-1, j);
+                j++;
+            });
+//            std::any cele;
+//            cele.emplace<decltype(dth)>(dth);
+            std::cout << typeid(dth).name() << std::endl;
+            std::cout << typeid(sad).name() << std::endl;
+//            sad = dth;
+            std::cout << dth << '\n';
+            std::cout <<  '\n';
+        });
+//        std::for_each(vector.cbegin(), vector.cend(), [](auto const& c) { std::cout << c << ' '; });
     }
 };
 

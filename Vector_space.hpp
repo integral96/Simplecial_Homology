@@ -15,6 +15,7 @@ struct product_scalr_ {
     }
 };
 
+
 template <typename IN>
 struct predicate_ {
 private:
@@ -53,9 +54,30 @@ public:
         : vector_(fusion::make_vector(std::forward<Args>(args)...)) {}
     /* -------------------------------------------------------------------- */
     template< typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
-    Vector_space& operator * (F value) {
+    Vector_space& operator *= (F value) {
         fusion::for_each(vector_, product_scalr_(value));
         return *this;
+    }
+
+    //operators==================================================================
+    Vector_space& operator += (const Vector_space& other) {
+        T value = 3;
+        int I = 0;
+        fusion::for_each(vector_, [&other, P_I = I](auto& x) mutable {
+            int J = 0;
+            fusion::for_each(other.vector_, [&x, &P_I, P_J = J](auto y) mutable {
+                if(P_I == P_J) x += y;
+                P_J++;
+            });
+            P_I++;
+        });
+        return *this;
+    }
+    template< typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
+    friend Vector_space operator*(Vector_space lhs, F rhs)
+    {
+        lhs *= rhs;
+        return lhs;
     }
     bool operator == (const Vector_space& other) const {
         int predicate_index{};
