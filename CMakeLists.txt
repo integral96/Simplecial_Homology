@@ -16,7 +16,7 @@ find_package(TBB COMPONENTS tbb)
 
 
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ltbb -lboost_log_setup -lnetcdf -pthread -lstdc++fs --pedantic")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ltbb -lboost_log_setup -pthread --pedantic")
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra -fPIC -DBOOST_LOG_DYN_LINK")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=2800")
 

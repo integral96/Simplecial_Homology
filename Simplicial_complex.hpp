@@ -23,6 +23,7 @@
 #include <boost/hana/count.hpp>
 #include <variant>
 #include <any>
+#include <cmath>
 
 #include "Simplex.hpp"
 #include "Vector_space.hpp"
@@ -71,7 +72,7 @@ struct N_constant {
         return value;
     }
 
-    _NODISCARD constexpr value_type operator()() const noexcept {
+    constexpr value_type operator()() const noexcept {
         return value;
     }
 };

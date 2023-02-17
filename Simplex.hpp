@@ -139,18 +139,7 @@ public:
         return sub_simplex;
     }
     //operators==================================================================
-    Simplex& operator = (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x = y;
-                P_J++;
-            });
-            P_I++;
-        });
-        return *this;
-    }
+
     Simplex& operator + (Simplex& other) {
         int I = 0;
         fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
@@ -220,18 +209,7 @@ public:
         return sub_simplex;
     }
     //operators==================================================================
-    Simplex& operator = (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x = y;
-                P_J++;
-            });
-            P_I++;
-        });
-        return *this;
-    }
+
     Simplex& operator + (Simplex& other) {
         int I = 0;
         fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
@@ -299,18 +277,7 @@ public:
         return sub_simplex;
     }
     //operators==================================================================
-    Simplex& operator = (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x = y;
-                P_J++;
-            });
-            P_I++;
-        });
-        return *this;
-    }
+
     Simplex& operator + (Simplex& other) {
         int I = 0;
         fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
@@ -375,18 +342,7 @@ public:
         return sub_simplex;
     }
     //operators==================================================================
-    Simplex& operator = (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x = y;
-                P_J++;
-            });
-            P_I++;
-        });
-        return *this;
-    }
+
     Simplex& operator + (Simplex& other) {
         int I = 0;
         fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
