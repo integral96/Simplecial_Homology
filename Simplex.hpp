@@ -93,8 +93,11 @@ private:
     gen_vector_simpl_t sub_simplex;
 public:
     Simplex() {}
-    template<typename ...Args, typename = std::enable_if_t<(sizeof... (Args) == N + 1) && is_same_v_<T, remove_cvref_t<Args>...>>>
+    template<typename ...Args, std::enable_if_t<(sizeof... (Args) == N + 1) && is_same_v_<T, remove_cvref_t<Args>...>>* = nullptr>
     Simplex(Args&&... args) : simplex_vertex(fusion::make_vector(std::forward<Args>(args)...)) {
+        for_all<N + 1, N + 1, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
+    }
+    Simplex(Simplex const& simpl) : simplex_vertex(simpl.simplex_vertex) {
         for_all<N + 1, N + 1, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
     }
     gen_vector_t const& get_simplex() const {
@@ -106,10 +109,19 @@ public:
     gen_vector_simpl_t  boundary_sub() const {
         return sub_simplex;
     }
+    bool empty() const {
+        int predicate_index{};
+        fusion::for_each(simplex_vertex, [&predicate_index](const auto& x) {
+            if(x == 0) ++predicate_index;
+        });
+        if(predicate_index == N + 1)
+            return true;
+        else return false;
+    }
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
-        plus_all<N, gen_vector_t>(simplex_vertex, other.simplex_vertex);
+        plus_all<N + 1, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -122,7 +134,6 @@ public:
     bool operator == (const Simplex& other) const {
         int predicate_index{};
         predicate_all<N + 1, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
-//        std::cout << "Operator = " << predicate_index << "; size = " << N + 1 << std::endl;
         if(predicate_index == N + 1)
             return true;
         else return false;
@@ -150,12 +161,14 @@ private:
     gen_vector_simpl_t sub_simplex;
 public:
     Simplex(){}
-    template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
+    template<typename F, std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>* = nullptr>
     Simplex(F&& arg1, F&& arg2, F&& arg3) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                             std::forward<F>(arg2),
                                                                             std::forward<F>(arg3))) {
-        sub_simplex = fusion::make_vector(simpl_type(arg1, arg2), simpl_type(arg1, arg3), simpl_type(arg2, arg3));
-//        std::cout << "Operator = " << arg1 << arg3 << std::endl;
+        for_all<3, 3, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
+    }
+    Simplex(Simplex const& simpl) : simplex_vertex(simpl.simplex_vertex) {
+        for_all<3, 3, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
     }
     gen_vector_t const& get_simplex() const {
         std::cout << "BINGO DIM = " << 2 << std::endl;
@@ -167,10 +180,19 @@ public:
     gen_vector_simpl_t  boundary_sub()  const {
         return sub_simplex;
     }
+    bool empty() const {
+        int predicate_index{};
+        fusion::for_each(sub_simplex, [&predicate_index](const auto& x) {
+            if(x.empty()) ++predicate_index;
+        });
+        if(predicate_index == 3)
+            return true;
+        else return false;
+    }
     //operators==================================================================
 
     Simplex& operator + (const Simplex& other) {
-        plus_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex);
+        plus_all<3, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -183,13 +205,11 @@ public:
     bool operator == (const Simplex& other) const {
         int predicate_index{};
         predicate_all<3, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
-//        std::cout << "Operator = " << other << "; size = " << 2 + 1 << std::endl;
         if(predicate_index == 3)
             return true;
         else return false;
     }
     bool operator != (const Simplex& other) const {
-//        std::cout << "Operator = " << other << "; size = " << 1 + 1 << std::endl;
         return !this->operator==( other );
     }
     friend std::ostream& operator << (std::ostream& o, const Simplex& s) {
@@ -215,12 +235,10 @@ public:
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
     Simplex(F&& arg1, F&& arg2) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                   std::forward<F>(arg2))) {
-        sub_simplex = fusion::make_vector(simpl_type(arg1), simpl_type(arg2));
-        std::cout << "Operator = " << arg1 << std::endl;
-//        fusion::for_each(simplex_vertex, [](auto y) {
-//            std::cout << y << ' ';
-//        });
-//        std::cout << '\n';
+        for_all<2, 2, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
+    }
+    Simplex(Simplex const& simpl) : simplex_vertex(simpl.simplex_vertex) {
+        for_all<2, 2, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
     }
     gen_vector_t const& get_simplex() const {
         return simplex_vertex;
@@ -231,10 +249,19 @@ public:
     gen_vector_simpl_t  boundary_sub() const {
         return sub_simplex;
     }
+    bool empty() const {
+        int predicate_index{};
+        fusion::for_each(sub_simplex, [&predicate_index](const auto& x) {
+            if(x.empty()) ++predicate_index;
+        });
+        if(predicate_index == 2)
+            return true;
+        else return false;
+    }
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
-        plus_all<1, gen_vector_t>(simplex_vertex, other.simplex_vertex);
+        plus_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -247,13 +274,11 @@ public:
     bool operator == (const Simplex& other) const {
         int predicate_index{};
         predicate_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
-//        std::cout << "Operator = " << other << "; size = " << 1 + 1 << std::endl;
         if(predicate_index == 2)
             return true;
         else return false;
     }
     bool operator != (const Simplex& other) const {
-//        std::cout << "Operator = " << other << "; size = " << 1 << std::endl;
         return !this->operator==( other );
     }
     friend std::ostream& operator << (std::ostream& o, const Simplex& s) {
@@ -276,12 +301,11 @@ public:
     Simplex(){}
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
     Simplex(F&& arg1) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1))) {
-        sub_simplex = fusion::make_vector(simpl_type(arg1));
-        std::cout << "Operator = " << arg1 << std::endl;
-//        fusion::for_each(simplex_vertex, [](auto y) {
-//            std::cout << y << ' ';
-//        });
-//        std::cout << '\n';
+        for_all<1, 1, fusion::vector<simpl_type>, fusion::vector<T>, simpl_type>(sub_simplex, simplex_vertex);
+//        sub_simplex = fusion::make_vector(simpl_type(arg1));
+    }
+    Simplex(Simplex const& simpl) : simplex_vertex(simpl.simplex_vertex) {
+        for_all<1, 1, fusion::vector<simpl_type>, fusion::vector<T>, simpl_type>(sub_simplex, simplex_vertex);
     }
     fusion::vector<T> const& get_simplex() const {
         return simplex_vertex;
@@ -292,10 +316,20 @@ public:
     fusion::vector<simpl_type>  boundary_sub() const {
         return sub_simplex;
     }
+    bool empty() const {
+        int predicate_index{};
+        fusion::for_each(simplex_vertex, [&predicate_index](const auto& x) {
+//            std::cout << typeid(x).name() << '\n';
+            if(x.get_zero()) ++predicate_index;
+        });
+        if(predicate_index == 1)
+            return true;
+        else return false;
+    }
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
-        plus_all<0, fusion::vector<T>>(simplex_vertex, other.simplex_vertex);
+        plus_all<1, fusion::vector<T>>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {

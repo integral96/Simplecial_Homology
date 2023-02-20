@@ -35,6 +35,9 @@ public:
         fusion::for_each(vector_, product_scalr_(value));
         return *this;
     }
+    bool get_zero() const {
+        return vector_ == gen_vector_t();
+    }
 
     //operators==================================================================
     Vector_space& operator += (const Vector_space& other) {
@@ -50,7 +53,6 @@ public:
     bool operator == (const Vector_space& other) const {
         int predicate_index{};
         predicate_all<N, gen_vector_t>(vector_, other.vector_, predicate_index);
-//        std::cout << "Operator = " << other << "; size = " << N << std::endl;
         if(predicate_index == N)
             return true;
         else return false;

@@ -110,10 +110,6 @@ public:
     auto get_complex() const {
         constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
         const auto ret = hana::filter(hana::at(complex, hana::size_c<2>), is_Ng);
-//        hana::for_each(ret, [&](auto x) {
-//            std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
-//        });
-        std::cout << std::endl;
         return ret;
     }
     friend std::ostream& operator << (std::ostream& out, const Simplicial_complex& cmpl) {
@@ -133,29 +129,22 @@ class boundary {
     std::vector<subsimplex_type> vector;
 public:
     boundary(const Complex_N& complex_) : complex(complex_) {
-        hana::for_each(complex, [&](auto& x) {
-            fusion::for_each(x.get_simplex(), [](auto y) {
-                std::cout << y << ' ';
-            });
-            std::cout <<  '\n';
+        hana::for_each(complex, [&](const auto& x) {
             auto tnp = x.boundary_sub();
-            fusion::for_each(tnp, [](auto y) {
-                std::cout << y << ' ';
-            });
-            std::cout <<  '\n';
+//            fusion::for_each(tnp, [](const auto& y) {
+//                std::cout << y << '\n';
+//            });
+//            std::cout <<  '\n';
             int p = 0;
             auto dth = fusion::at<mpl::int_<0>>(tnp);
-            const auto dth_tmp = fusion::at<mpl::int_<0>>(tnp);
-            fusion::for_each(tnp, [&dth, &dth_tmp, j = p](auto& z) mutable {
-                if(dth_tmp != z) {
-                    std::cout << dth_tmp << "; " << z << "; " << j << '\n';
-                    dth = dth + z*std::pow(-1, j);
-                }
+            const auto& dth_tmp = fusion::at<mpl::int_<0>>(tnp);
+            fusion::for_each(tnp, [&dth, &dth_tmp, j = p](const auto& z) mutable {
+                auto z_tmp = z;
+                dth = dth + z_tmp*std::pow(-1, j + 1);
                 ++j;
+                std::cout << dth << '\n';
             });
             vector.emplace_back(dth);
-            std::cout << dth << '\n';
-            std::cout <<  '\n';
         });
     }
     auto get() const {
