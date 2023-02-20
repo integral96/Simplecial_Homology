@@ -109,10 +109,10 @@ public:
     template<int N>
     auto get_complex() const {
         constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
-        const auto ret = hana::filter(hana::at(this->complex, hana::size_c<2>), is_Ng);
-        hana::for_each(ret, [&](auto x) {
-            std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
-        });
+        const auto ret = hana::filter(hana::at(complex, hana::size_c<2>), is_Ng);
+//        hana::for_each(ret, [&](auto x) {
+//            std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
+//        });
         std::cout << std::endl;
         return ret;
     }
@@ -133,20 +133,25 @@ class boundary {
     std::vector<subsimplex_type> vector;
 public:
     boundary(const Complex_N& complex_) : complex(complex_) {
-        subsimplex_type sad;
-        int sd{};
         hana::for_each(complex, [&](auto& x) {
-            auto tnp = x.boundary_sub();
-            fusion::for_each(tnp, [](auto y) {
-                std::cout << y << '\n';
+            fusion::for_each(x.get_simplex(), [](auto y) {
+                std::cout << y << ' ';
             });
             std::cout <<  '\n';
-            int p{};
+            auto tnp = x.boundary_sub();
+            fusion::for_each(tnp, [](auto y) {
+                std::cout << y << ' ';
+            });
+            std::cout <<  '\n';
+            int p = 0;
             auto dth = fusion::at<mpl::int_<0>>(tnp);
-            fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
-                auto dth1 = z;
-                if(dth != z) dth = dth + dth1*std::pow(-1, j);
-                j++;
+            const auto dth_tmp = fusion::at<mpl::int_<0>>(tnp);
+            fusion::for_each(tnp, [&dth, &dth_tmp, j = p](auto& z) mutable {
+                if(dth_tmp != z) {
+                    std::cout << dth_tmp << "; " << z << "; " << j << '\n';
+                    dth = dth + z*std::pow(-1, j);
+                }
+                ++j;
             });
             vector.emplace_back(dth);
             std::cout << dth << '\n';

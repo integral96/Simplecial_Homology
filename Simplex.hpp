@@ -79,31 +79,6 @@ struct boundary_chain
     }
 };
 
-template <typename IN>
-struct predicate_one {
-private:
-    const IN& simplex_vertex1;
-    const IN& simplex_vertex2;
-    int& index;
-public:
-    predicate_one(const IN& simplex1_, const IN& simplex2_, int& index) :
-        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), index(index)  {}
-    template <int J>
-    void apply() {
-        if(fusion::at_c<J>(simplex_vertex1) == fusion::at_c<J>(simplex_vertex2)) {
-            ++index;
-//            std::cout << fusion::at_c<J>(simplex_vertex1) << " == " << fusion::at_c<J>(simplex_vertex2) << std::endl;
-        }
-//        else
-//            std::cout << fusion::at_c<J>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
-    }
-};
-
-template <int N, typename IN>
-inline void predicate_all(const IN& simplex1_, const IN& simplex2_, int& index) {
-    predicate_one<IN> closure(simplex1_, simplex2_, index);
-    meta_loop<N>(closure);
-}
 
 template<int N, typename T>
 struct Simplex {
@@ -121,13 +96,6 @@ public:
     template<typename ...Args, typename = std::enable_if_t<(sizeof... (Args) == N + 1) && is_same_v_<T, remove_cvref_t<Args>...>>>
     Simplex(Args&&... args) : simplex_vertex(fusion::make_vector(std::forward<Args>(args)...)) {
         for_all<N + 1, N + 1, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
-        std::cout << "SIMPLEX DIM = " << N << std::endl;
-        fusion::for_each(simplex_vertex, print_(std::cout));
-        std::cout << std::endl;
-        std::cout << "SUB SIMPLEX DIM = " << N - 1 << std::endl;
-        fusion::for_each(sub_simplex, print_(std::cout));
-        std::cout << std::endl;
-
     }
     gen_vector_t const& get_simplex() const {
         return simplex_vertex;
@@ -141,15 +109,7 @@ public:
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x += y;
-                P_J++;
-            });
-            P_I++;
-        });
+        plus_all<N, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -161,9 +121,9 @@ public:
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
         int predicate_index{};
-        predicate_all<N, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
-        std::cout << "Operator = " << predicate_index << "; size = " << N + 1 << std::endl;
-        if(predicate_index == N)
+        predicate_all<N + 1, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
+//        std::cout << "Operator = " << predicate_index << "; size = " << N + 1 << std::endl;
+        if(predicate_index == N + 1)
             return true;
         else return false;
     }
@@ -195,11 +155,10 @@ public:
                                                                             std::forward<F>(arg2),
                                                                             std::forward<F>(arg3))) {
         sub_simplex = fusion::make_vector(simpl_type(arg1, arg2), simpl_type(arg1, arg3), simpl_type(arg2, arg3));
-//        std::cout << "DIM = " << 2 << std::endl;
-//        fusion::for_each(simplex_vertex, print_(std::cout));
-//        std::cout << std::endl;
+//        std::cout << "Operator = " << arg1 << arg3 << std::endl;
     }
     gen_vector_t const& get_simplex() const {
+        std::cout << "BINGO DIM = " << 2 << std::endl;
         return simplex_vertex;
     }
     boundary_chain<2, gen_vector_simpl_t>  boundary() {
@@ -210,16 +169,8 @@ public:
     }
     //operators==================================================================
 
-    Simplex& operator + (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x += y;
-                P_J++;
-            });
-            P_I++;
-        });
+    Simplex& operator + (const Simplex& other) {
+        plus_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -231,12 +182,14 @@ public:
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
         int predicate_index{};
-        predicate_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
-        if(predicate_index == 2)
+        predicate_all<3, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
+//        std::cout << "Operator = " << other << "; size = " << 2 + 1 << std::endl;
+        if(predicate_index == 3)
             return true;
         else return false;
     }
     bool operator != (const Simplex& other) const {
+//        std::cout << "Operator = " << other << "; size = " << 1 + 1 << std::endl;
         return !this->operator==( other );
     }
     friend std::ostream& operator << (std::ostream& o, const Simplex& s) {
@@ -263,9 +216,11 @@ public:
     Simplex(F&& arg1, F&& arg2) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                   std::forward<F>(arg2))) {
         sub_simplex = fusion::make_vector(simpl_type(arg1), simpl_type(arg2));
-//        std::cout << "DIM = " << 1 << std::endl;
-//        fusion::for_each(simplex_vertex, print_(std::cout));
-//        std::cout << std::endl;
+        std::cout << "Operator = " << arg1 << std::endl;
+//        fusion::for_each(simplex_vertex, [](auto y) {
+//            std::cout << y << ' ';
+//        });
+//        std::cout << '\n';
     }
     gen_vector_t const& get_simplex() const {
         return simplex_vertex;
@@ -279,15 +234,7 @@ public:
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x += y;
-                P_J++;
-            });
-            P_I++;
-        });
+        plus_all<1, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -299,12 +246,14 @@ public:
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
         int predicate_index{};
-        predicate_all<1, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
-        if(predicate_index == 1)
+        predicate_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
+//        std::cout << "Operator = " << other << "; size = " << 1 + 1 << std::endl;
+        if(predicate_index == 2)
             return true;
         else return false;
     }
     bool operator != (const Simplex& other) const {
+//        std::cout << "Operator = " << other << "; size = " << 1 << std::endl;
         return !this->operator==( other );
     }
     friend std::ostream& operator << (std::ostream& o, const Simplex& s) {
@@ -328,9 +277,11 @@ public:
     template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
     Simplex(F&& arg1) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1))) {
         sub_simplex = fusion::make_vector(simpl_type(arg1));
-//        std::cout << "DIM = " << 0 << std::endl;
-//        fusion::for_each(simplex_vertex, print_(std::cout));
-//        std::cout << std::endl;
+        std::cout << "Operator = " << arg1 << std::endl;
+//        fusion::for_each(simplex_vertex, [](auto y) {
+//            std::cout << y << ' ';
+//        });
+//        std::cout << '\n';
     }
     fusion::vector<T> const& get_simplex() const {
         return simplex_vertex;
@@ -344,15 +295,7 @@ public:
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
-        int I = 0;
-        fusion::for_each(simplex_vertex, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.simplex_vertex, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x += y;
-                P_J++;
-            });
-            P_I++;
-        });
+        plus_all<0, fusion::vector<T>>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {

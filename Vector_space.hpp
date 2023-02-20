@@ -16,31 +16,8 @@ struct product_scalr_ {
 };
 
 
-template <typename IN>
-struct predicate_ {
-private:
-    const IN& simplex_vertex1;
-    const IN& simplex_vertex2;
-    int& index;
-public:
-    predicate_(const IN& simplex1_, const IN& simplex2_, int& index) :
-        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), index(index)  {}
-    template <int J>
-    void apply() {
-        if(fusion::at_c<J>(simplex_vertex1) == fusion::at_c<J>(simplex_vertex2)) {
-            ++index;
-        }
-    }
-};
-
-template <int N, typename IN>
-inline void predicate_all_(const IN& simplex1_, const IN& simplex2_, int& index) {
-    predicate_<IN> closure(simplex1_, simplex2_, index);
-    meta_loop<N>(closure);
-}
-
 template<size_t N, typename T>
-class Vector_space : public boost::shared_array<T> {
+class Vector_space {
 public:
     using value_type = T;
     static constexpr int dim = N;
@@ -50,7 +27,7 @@ private:
 public:
     Vector_space(){}
     template<typename... Args, typename = std::enable_if_t<(sizeof... (Args) == N) && is_same_v_<T, remove_cvref_t<Args>...>>>
-    explicit Vector_space(Args&& ... args)
+    Vector_space(Args&& ... args)
         : vector_(fusion::make_vector(std::forward<Args>(args)...)) {}
     /* -------------------------------------------------------------------- */
     template< typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
@@ -61,16 +38,7 @@ public:
 
     //operators==================================================================
     Vector_space& operator += (const Vector_space& other) {
-        T value = 3;
-        int I = 0;
-        fusion::for_each(vector_, [&other, P_I = I](auto& x) mutable {
-            int J = 0;
-            fusion::for_each(other.vector_, [&x, &P_I, P_J = J](auto y) mutable {
-                if(P_I == P_J) x += y;
-                P_J++;
-            });
-            P_I++;
-        });
+        plus_all<N, gen_vector_t>(vector_, other.vector_);
         return *this;
     }
     template< typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
@@ -81,10 +49,14 @@ public:
     }
     bool operator == (const Vector_space& other) const {
         int predicate_index{};
-        predicate_all_<N, gen_vector_t>(vector_, other.vector_, predicate_index);
+        predicate_all<N, gen_vector_t>(vector_, other.vector_, predicate_index);
+//        std::cout << "Operator = " << other << "; size = " << N << std::endl;
         if(predicate_index == N)
             return true;
         else return false;
+    }
+    bool operator != (const Vector_space& other) const {
+        return !this->operator==( other );
     }
     friend std::ostream& operator << (std::ostream& o, const Vector_space& s) {
         o << "{ ";

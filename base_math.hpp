@@ -91,6 +91,69 @@ inline void for_all(OUT& RESULT_, const IN& simplex_) {
     for_two<N1, OUT, IN, Simpl> closure(RESULT_, simplex_);
     meta_loop<N2>(closure);
 }
+
+template <int I, int M, typename IN>
+struct plus_one {
+private:
+    IN& simplex_vertex1;
+    const IN& simplex_vertex2;
+public:
+    plus_one(IN& simplex1_, const IN& simplex2_) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_)  {}
+    template <int J>
+    void apply() {
+        if constexpr(J == I) {
+            fusion::at_c<J>(simplex_vertex1) += fusion::at_c<J>(simplex_vertex2);
+        }
+    }
+};
+template <int M, typename IN>
+struct plus_two {
+private:
+    IN& simplex_vertex1;
+    const IN& simplex_vertex2;
+public:
+    plus_two(IN& simplex1_, const IN& simplex2_) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_)  {}
+    template <int I>
+    void apply() {
+        plus_one<I, M, IN> closure(simplex_vertex1, simplex_vertex2);
+        meta_loop<M>(closure);
+    }
+};
+
+template <int M, typename IN>
+inline void plus_all(IN& simplex1_, const IN& simplex2_) {
+    plus_two<M, IN> closure(simplex1_, simplex2_);
+    meta_loop<M>(closure);
+}
+template <typename IN>
+struct predicate_one {
+private:
+    const IN& simplex_vertex1;
+    const IN& simplex_vertex2;
+    int& index;
+public:
+    predicate_one(const IN& simplex1_, const IN& simplex2_, int& index) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), index(index)  {}
+    template <int J>
+    void apply() {
+        if(fusion::at_c<J>(simplex_vertex1) == fusion::at_c<J>(simplex_vertex2)) {
+            ++index;
+//            std::cout << fusion::at_c<J>(simplex_vertex1) << " == " << fusion::at_c<J>(simplex_vertex2) << std::endl;
+        }
+//        else
+//            std::cout << fusion::at_c<J>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
+    }
+};
+
+template <int N, typename IN>
+inline void predicate_all(const IN& simplex1_, const IN& simplex2_, int& index) {
+    predicate_one<IN> closure(simplex1_, simplex2_, index);
+    meta_loop<N>(closure);
+}
+
+
 namespace my {
     template<class T, int N>
     struct helper {

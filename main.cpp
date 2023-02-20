@@ -32,8 +32,11 @@ int main()
     std::cout << "END MAKE COMPLEX" << std::endl;
     std::cout << "GET COMPLEX DIMENTION = " << N << std::endl;
     Simplicial_complex complex_simpl(complex);
-    std::cout << complex_simpl << std::endl;
+//    std::cout << complex_simpl << std::endl;
     const auto compl_N = complex_simpl.get_complex<N>();
+//    hana::for_each(compl_N, [&](auto x) {
+//        std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
+//    });
     std::cout << "END COMPLEX DIMENTION = " << N << std::endl;
     std::cout << "GET COMPLEX BOUNDARY: " << std::endl;
     boundary<N, decltype(compl_N), vector_space> bndr_N(compl_N);
@@ -41,6 +44,7 @@ int main()
     hana::for_each(B_N, [&](auto x) {
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });
+
     boundary<N - 1, decltype(B_N), vector_space> bndr_N_1(B_N);
     const auto B_N_1 = bndr_N_1.get();
     hana::for_each(B_N_1, [&](auto x) {
