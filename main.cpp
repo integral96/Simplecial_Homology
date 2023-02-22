@@ -2,14 +2,14 @@
 
 #include "Simplicial_complex.hpp"
 #include "Vector_space.hpp"
-static constexpr int N = 3;
+static constexpr int N = 4;
 using vector_space = Vector_space<4, int>;
 int main()
 {
     vector_space d0(2, 4, 3, -2);
     vector_space d1(-1, 3, -2, 5);
-    vector_space d2(1, -3, 3, 2);
-    vector_space d3(-1, -3, 2, 4);
+    vector_space d2(1, -5, 3, 2);
+    vector_space d3(-1, -6, 2, 4);
     vector_space d4(-2, 1, -3, 2);
 
 
@@ -39,18 +39,14 @@ int main()
 
     std::cout << "END COMPLEX DIMENTION = " << complex_simpl << N << std::endl;
     std::cout << "GET COMPLEX BOUNDARY: " << std::endl;
-    auto bndry_N  = boundary<N>(chain);
-    auto bndry_N_1  = boundary<N - 1>(bndry_N);
-//    static_assert(curry(left, right), "");
-//    BOOST_HANA_CONSTEXPR_CHECK(!curry(left, right));
-//    const auto count_ = bndr_N.template get_count<N>();
-//    BOOST_HANA_CONSTEXPR_CHECK(count_ == 2);
-//    const auto chain_compl = bndr_N.get();
-    hana::for_each(bndry_N, [](auto x) {
+    auto chain_N  = boundary<N>(chain);
+    auto chain_N_1  = boundary<N - 1>(chain_N);
+    std::cout << "Взятие граничного оператора: " << std::endl;
+    hana::for_each(chain_N, [](auto x) {
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });
     std::cout << "Двойное взятие граничного оператора должно быть равно нулую: " << std::endl;
-    hana::for_each(bndry_N_1, [&](auto x) {
+    hana::for_each(chain_N_1, [&](auto x) {
         BOOST_ASSERT_MSG(x.empty(), "Двойное взятие граничного оператора должно быть равно нулую.");
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });

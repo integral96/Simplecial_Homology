@@ -85,33 +85,6 @@ inline constexpr auto make_complex(Args&&... args) {
     constexpr auto complex_dim  = hana::make<hana::tuple_tag>(hana::int_c<std::decay_t<Args>::dim>...);
     return hana::make<hana::tuple_tag>(std::forward<Args>(args)...);
 }
-//template<typename ...Args>
-template<int M>
-class make_s {
-private:
-    template<int N>
-    struct is_NN {
-        template <class _Ty>
-        struct is_N : bool_constant<is_N_v<_Ty, N>> {};
-    };
-    using tuple_chain = boost::mp11::mp_repeat_c<hana::tuple<Simplex<M, Vector_space<4, int> > >, 2>;
-//    static constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);
-//    static constexpr auto complex_dim  = hana::make<hana::tuple_tag>(hana::int_c<std::decay_t<Args>::dim>...);
-//    using type = hana::tuple<Args...>;
-//    type complex;
-public:
-    template<int N>
-    struct get_count {
-//        static constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);
-//        static constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
-//        static constexpr auto count = hana::count_if(complex_type, is_Ng);
-    };
-public:
-    make_s() = delete;
-    template<typename ...Args>
-    make_s(Args&&... args) /*: complex(hana::make<hana::tuple_tag>(std::forward<Args>(args)...))*/ {}
-};
-
 
 template <class Complex>
 class Simplicial_complex {
@@ -154,31 +127,37 @@ inline  auto curry(Left& left, Right& right) {
 
 template<int N, class Complex>
 inline constexpr auto boundary(const Complex& cmplx_N) {
+    constexpr size_t tupleSize = decltype(
+        hana::size(std::declval<Complex>())
+    )::value;
+    std::cout << "Количество симплексов размерности: " << N << "; равно: " << tupleSize << '\n';
     using subsimplex_type = Simplex<N - 1, Vector_space<4, int> >;
     std::vector<subsimplex_type> vector;
-    hana::for_each(cmplx_N, [&](const auto& x) {
+    hana::for_each(cmplx_N, [&vector](const auto& x) {
         auto tnp = x.boundary_sub();
-        std::cout << "Разложение в подсимлексы:" << '\n';
-        fusion::for_each(tnp, [](const auto& y) {
-            std::cout << y << '\n';
+        std::cout << "Разложение в " << N << "-цепь." << '\n';
+        int k = 0;
+        fusion::for_each(tnp, [j = k](const auto& y) mutable {
+            auto znak = std::pow(-1, j);
+            if(znak == -1)
+                std::cout << "-" << y << '\n';
+            else
+                std::cout << "+" << y << '\n';
+            ++j;
         });
         std::cout <<  '\n';
         int p = 0;
         auto dth = fusion::at<mpl::int_<0>>(tnp);
         fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
             auto z_tmp = z*std::pow(-1, j);
-//            std::cout << z_tmp << "; " << dth << "; " << j << '\n';
             if(z_tmp != dth) {
                 dth = dth + z_tmp;
-//                std::cout << dth << "; " << j << '\n';
             }
             ++j;
         });
-//        std::cout << dth << '\n';
         vector.emplace_back(dth);
     });
-    constexpr int M = 2;
-    return unpack_to_tuple(vector, std::make_index_sequence<M>());
+    return unpack_to_tuple(vector, std::make_index_sequence<tupleSize>());
 }
 
 
