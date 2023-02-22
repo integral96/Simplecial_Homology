@@ -127,11 +127,14 @@ inline  auto curry(Left& left, Right& right) {
 
 template<int N, class Complex>
 inline constexpr auto boundary(const Complex& cmplx_N) {
-    constexpr size_t tupleSize = decltype(
-        hana::size(std::declval<Complex>())
-    )::value;
-    std::cout << "Количество симплексов размерности: " << N << "; равно: " << tupleSize << '\n';
-    using subsimplex_type = Simplex<N - 1, Vector_space<4, int> >;
+    constexpr size_t tupleSize = decltype(hana::size(std::declval<Complex>()))::value;
+    typedef typename std::remove_cvref_t<
+                                        decltype(hana::front(std::declval<Complex>()))
+                                        >::value_type Vector_type;
+//    auto const& ti = BOOST_CORE_TYPEID(Vector_type);
+//    std::cout << boost::core::demangled_name(ti) << std::endl;
+//    std::cout << "Количество симплексов размерности: " << N << "; равно: " << tupleSize << '\n';
+    using subsimplex_type = Simplex<N - 1, Vector_type>;
     std::vector<subsimplex_type> vector;
     hana::for_each(cmplx_N, [&vector](const auto& x) {
         auto tnp = x.boundary_sub();
