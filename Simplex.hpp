@@ -341,8 +341,8 @@ public:
     //comparison operators==================================================================
     bool operator == (const Simplex& other) const {
         int predicate_index{};
-        predicate_all<0, fusion::vector<T>>(simplex_vertex, other.simplex_vertex, predicate_index);
-        if(predicate_index == 0)
+        predicate_all<1, fusion::vector<T>>(simplex_vertex, other.simplex_vertex, predicate_index);
+        if(predicate_index == 1)
             return true;
         else return false;
     }

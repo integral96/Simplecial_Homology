@@ -16,11 +16,13 @@
 #include <boost/hana/functional/compose.hpp>
 #include <boost/hana/functional/iterate.hpp>
 #include <boost/hana/functional/placeholder.hpp>
+#include <boost/hana/functional/fix.hpp>
 #include <boost/hana/fuse.hpp>
 #include <boost/hana/at.hpp>
 #include <boost/hana/traits.hpp>
 #include <boost/core/typeinfo.hpp>
 #include <boost/hana/count.hpp>
+#include <boost/hana/size.hpp>
 #include <variant>
 #include <any>
 #include <cmath>
@@ -48,19 +50,9 @@ public:
 
 template<class Vect, size_t... S>
 inline auto unpack_to_tuple(const Vect& vec, std::index_sequence<S...>) {
-//    Simpl simpl(vec[S]...);
     return hana::make_tuple(vec[S]...);
 }
 
-
-template<typename ...Args>
-inline auto make_complex(Args&&... args) {
-    constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);
-    constexpr auto complex_dim  = hana::make<hana::tuple_tag>(hana::int_c<std::decay_t<Args>::dim>...);
-    auto complex = hana::make<hana::tuple_tag>(std::forward<Args>(args)...);
-
-    return hana::make_tuple(complex_type, complex_dim, complex);
-}
 template <class _Ty, _Ty _Val>
 struct N_constant {
     static constexpr _Ty value = _Val;
@@ -86,70 +78,108 @@ using false_type = bool_constant<false>;
 template <class _Ty, int N>
 inline constexpr bool is_N_v = _Ty::dim == N;
 
+template<typename ...Args>
+inline constexpr auto make_complex(Args&&... args) {
+//    typedef boost::mpl::vector<Args...> MyMplVector;
+    constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);;
+    constexpr auto complex_dim  = hana::make<hana::tuple_tag>(hana::int_c<std::decay_t<Args>::dim>...);
+    return hana::make<hana::tuple_tag>(std::forward<Args>(args)...);
+}
+//template<typename ...Args>
+template<int M>
+class make_s {
+private:
+    template<int N>
+    struct is_NN {
+        template <class _Ty>
+        struct is_N : bool_constant<is_N_v<_Ty, N>> {};
+    };
+    using tuple_chain = boost::mp11::mp_repeat_c<hana::tuple<Simplex<M, Vector_space<4, int> > >, 2>;
+//    static constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);
+//    static constexpr auto complex_dim  = hana::make<hana::tuple_tag>(hana::int_c<std::decay_t<Args>::dim>...);
+//    using type = hana::tuple<Args...>;
+//    type complex;
+public:
+    template<int N>
+    struct get_count {
+//        static constexpr auto complex_type = hana::make<hana::tuple_tag>(hana::type<Args>{}...);
+//        static constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
+//        static constexpr auto count = hana::count_if(complex_type, is_Ng);
+    };
+public:
+    make_s() = delete;
+    template<typename ...Args>
+    make_s(Args&&... args) /*: complex(hana::make<hana::tuple_tag>(std::forward<Args>(args)...))*/ {}
+};
+
+
 template <class Complex>
 class Simplicial_complex {
-private:
-     Complex& complex;
-     template<int N>
-     struct is_NN {
-         template <class _Ty>
-         struct is_N : bool_constant<is_N_v<_Ty, N>> {};
-     };
-     constexpr auto get_complex_type() const {
-         return hana::at(this->complex, hana::size_c<0>);
-     }
-     constexpr auto get_complex_dim() const {
-         return hana::at(this->complex, hana::size_c<1>);
-     }
-     constexpr auto get_complex_() const {
-         return hana::at(this->complex, hana::size_c<2>);
-     }
-public:
-    Simplicial_complex(Complex& complex_) : complex(complex_) {}
+    using complex_type = Complex;
     template<int N>
-    auto get_complex() const {
+    struct is_NN {
+        template <class _Ty>
+        struct is_N : bool_constant<is_N_v<_Ty, N>> {};
+    };
+    complex_type& complex;
+public:
+
+    template<int N>
+    static constexpr auto get_count() {
         constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
-        const auto ret = hana::filter(hana::at(complex, hana::size_c<2>), is_Ng);
-        return ret;
+        return hana::count_if(Complex{}, is_Ng);
     }
+
+public:
+    Simplicial_complex() = delete;
+    Simplicial_complex(Complex& complex_) : complex{complex_} {}
+    template<int N>
+    constexpr auto chain_unit() const {
+        constexpr auto is_Ng = hana::compose(hana::trait<is_NN<N>::template is_N>, hana::decltype_);
+        return hana::filter(complex, is_Ng);
+    }
+
     friend std::ostream& operator << (std::ostream& out, const Simplicial_complex& cmpl) {
-        hana::for_each(cmpl.get_complex_type(), print_type(out));
-        out << std::endl;
-        hana::for_each(cmpl.get_complex_(), [&](auto x) {
+        hana::for_each(cmpl.complex, [&](auto x) {
             out << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
         });
         out << std::endl;
         return out;
     }
 };
-template<int N, class Complex_N, class Vec_spc>
-class boundary {
-    const Complex_N& complex;
-    using subsimplex_type = Simplex<N - 1, Vec_spc >;
+template<typename Left, typename Right>
+inline  auto curry(Left& left, Right& right) {
+    return hana::equal(left, right);
+}
+
+template<int N, class Complex>
+inline constexpr auto boundary(const Complex& cmplx_N) {
+    using subsimplex_type = Simplex<N - 1, Vector_space<4, int> >;
     std::vector<subsimplex_type> vector;
-public:
-    boundary(const Complex_N& complex_) : complex(complex_) {
-        hana::for_each(complex, [&](const auto& x) {
-            auto tnp = x.boundary_sub();
-//            fusion::for_each(tnp, [](const auto& y) {
-//                std::cout << y << '\n';
-//            });
-//            std::cout <<  '\n';
-            int p = 0;
-            auto dth = fusion::at<mpl::int_<0>>(tnp);
-            const auto& dth_tmp = fusion::at<mpl::int_<0>>(tnp);
-            fusion::for_each(tnp, [&dth, &dth_tmp, j = p](const auto& z) mutable {
-                auto z_tmp = z;
-                dth = dth + z_tmp*std::pow(-1, j + 1);
-                ++j;
-                std::cout << dth << '\n';
-            });
-            vector.emplace_back(dth);
+    hana::for_each(cmplx_N, [&](const auto& x) {
+        auto tnp = x.boundary_sub();
+        std::cout << "Разложение в подсимлексы:" << '\n';
+        fusion::for_each(tnp, [](const auto& y) {
+            std::cout << y << '\n';
         });
-    }
-    auto get() const {
-        return unpack_to_tuple(vector, std::make_index_sequence<2>());
-    }
-};
+        std::cout <<  '\n';
+        int p = 0;
+        auto dth = fusion::at<mpl::int_<0>>(tnp);
+        fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
+            auto z_tmp = z*std::pow(-1, j);
+//            std::cout << z_tmp << "; " << dth << "; " << j << '\n';
+            if(z_tmp != dth) {
+                dth = dth + z_tmp;
+//                std::cout << dth << "; " << j << '\n';
+            }
+            ++j;
+        });
+//        std::cout << dth << '\n';
+        vector.emplace_back(dth);
+    });
+    constexpr int M = 2;
+    return unpack_to_tuple(vector, std::make_index_sequence<M>());
+}
+
 
 #endif // SIMPLICIAL_COMPLEX_HPP
