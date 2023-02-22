@@ -152,6 +152,46 @@ inline void predicate_all(const IN& simplex1_, const IN& simplex2_, int& index) 
     predicate_one<IN> closure(simplex1_, simplex2_, index);
     meta_loop<N>(closure);
 }
+template <int I, typename IN, typename IN_1>
+struct predicateN_one {
+private:
+    const IN& simplex_vertex1;
+    const IN_1& simplex_vertex2;
+    int& index;
+public:
+    predicateN_one(const IN& simplex1_, const IN_1& simplex2_, int& index) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), index(index)  {}
+    template <int J>
+    void apply() {
+        if(fusion::at_c<I>(simplex_vertex1) != fusion::at_c<J>(simplex_vertex2)) {
+            ++index;
+//            std::cout << fusion::at_c<I>(simplex_vertex1) << " == " << fusion::at_c<J>(simplex_vertex2) << std::endl;
+        }
+//        else
+//            std::cout << fusion::at_c<J>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
+    }
+};
+template <int M_2, typename IN, typename IN_1>
+struct predicateN_two {
+private:
+    const IN& simplex_vertex1;
+    const IN_1& simplex_vertex2;
+    int& index;
+public:
+    predicateN_two(const IN& simplex1_, const IN_1& simplex2_, int& index) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), index(index)  {}
+    template <int I>
+    void apply() {
+        predicateN_one<I, IN, IN_1> closure(simplex_vertex1, simplex_vertex2, index);
+        meta_loop<M_2>(closure);
+    }
+};
+
+template <int M_1, int M_2, typename IN, typename IN_1>
+inline void predicateN_all(const IN& simplex1_, const IN_1& simplex2_, int& index) {
+    predicateN_two<M_2, IN, IN_1> closure(simplex1_, simplex2_, index);
+    meta_loop<M_1>(closure);
+}
 
 
 namespace my {

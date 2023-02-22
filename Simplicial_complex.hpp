@@ -113,6 +113,7 @@ public:
     }
 
     friend std::ostream& operator << (std::ostream& out, const Simplicial_complex& cmpl) {
+        out << std::endl;
         hana::for_each(cmpl.complex, [&](auto x) {
             out << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
         });
@@ -126,7 +127,7 @@ inline  auto curry(Left& left, Right& right) {
 }
 
 template<int N, class Complex>
-inline constexpr auto boundary(const Complex& cmplx_N) {
+inline constexpr auto boundary(const Complex& chain) {
     constexpr size_t tupleSize = decltype(hana::size(std::declval<Complex>()))::value;
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Complex>()))
@@ -136,7 +137,7 @@ inline constexpr auto boundary(const Complex& cmplx_N) {
 //    std::cout << "Количество симплексов размерности: " << N << "; равно: " << tupleSize << '\n';
     using subsimplex_type = Simplex<N - 1, Vector_type>;
     std::vector<subsimplex_type> vector;
-    hana::for_each(cmplx_N, [&vector](const auto& x) {
+    hana::for_each(chain, [&vector](const auto& x) {
         auto tnp = x.boundary_sub();
         std::cout << "Разложение в " << N << "-цепь." << '\n';
         int k = 0;
@@ -162,6 +163,37 @@ inline constexpr auto boundary(const Complex& cmplx_N) {
     });
     return unpack_to_tuple(vector, std::make_index_sequence<tupleSize>());
 }
-
+template<int N, class Complex>
+inline constexpr auto Kernel(const Complex& chain) {
+    return boundary<N>(chain);
+}
+template<int N, class Complex>
+inline constexpr auto Image(const Complex& chain) {
+    return boundary<N>(chain);
+}
+template<class Ker, class Im>
+inline constexpr auto quotient(const Ker& ker, const Im& im) {
+    constexpr size_t tupleSize = decltype(hana::size(std::declval<Im>()))::value;
+    typedef typename std::remove_cvref_t<
+                                        decltype(hana::front(std::declval<Im>()))
+                                        > Simplex_type;
+    typedef typename std::remove_cvref_t<
+                                        decltype(hana::front(std::declval<Im>()))
+                                        >::value_type Vector_type;
+    using subsimplex_type = Simplex<Simplex_type::dim, Vector_type>;
+//    auto const& ti = BOOST_CORE_TYPEID(Simplex_type);
+//    std::cout << boost::core::demangled_name(ti) << "; " << Simplex_type::dim << std::endl;
+//    hana::for_each(ker, print_type(std::cout));
+//    hana::for_each(im, print_type(std::cout));
+    std::vector<subsimplex_type> vector_ker;
+    hana::for_each(ker, [&vector_ker, &im](const auto& x) {
+        hana::for_each(im, [&vector_ker, &x](const auto& y) {
+            if(y != x) {
+                vector_ker.emplace_back(y);
+            }
+        });
+    });
+    return unpack_to_tuple(vector_ker, std::make_index_sequence<tupleSize>());
+}
 
 #endif // SIMPLICIAL_COMPLEX_HPP
