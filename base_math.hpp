@@ -165,10 +165,7 @@ public:
     void apply() {
         if(fusion::at_c<I>(simplex_vertex1) != fusion::at_c<J>(simplex_vertex2)) {
             ++index;
-//            std::cout << fusion::at_c<I>(simplex_vertex1) << " == " << fusion::at_c<J>(simplex_vertex2) << std::endl;
         }
-//        else
-//            std::cout << fusion::at_c<J>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
     }
 };
 template <int M_2, typename IN, typename IN_1>
@@ -192,7 +189,45 @@ inline void predicateN_all(const IN& simplex1_, const IN_1& simplex2_, int& inde
     predicateN_two<M_2, IN, IN_1> closure(simplex1_, simplex2_, index);
     meta_loop<M_1>(closure);
 }
+template <int I, typename SimN, typename SimN_1, typename Vector>
+struct emplace_vector_one {
+private:
+    const SimN& simplex_vertex1;
+    const SimN_1& simplex_vertex2;
+    Vector& vec;
+public:
+    emplace_vector_one(const SimN& simplex1_, const SimN_1& simplex2_, Vector& vec_) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), vec(vec_)  {}
+    template <int J>
+    void apply() {
+        if(fusion::at_c<I>(simplex_vertex1) != fusion::at_c<J>(simplex_vertex2)) {
+//            std::cout << fusion::at_c<I>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
+            vec.emplace_back(fusion::at_c<J>(simplex_vertex2));
+            vec.emplace_back(fusion::at_c<I>(simplex_vertex1));
+        }
+    }
+};
+template <int M_2, typename SimN, typename SimN_1, typename Vector>
+struct emplace_vector_two {
+private:
+    const SimN& simplex_vertex1;
+    const SimN_1& simplex_vertex2;
+    Vector& vec;
+public:
+    emplace_vector_two(const SimN& simplex1_, const SimN_1& simplex2_, Vector& vec_) :
+        simplex_vertex1(simplex1_), simplex_vertex2(simplex2_), vec(vec_)  {}
+    template <int I>
+    void apply() {
+        emplace_vector_one<I, SimN, SimN_1, Vector> closure(simplex_vertex1, simplex_vertex2, vec);
+        meta_loop<M_2>(closure);
+    }
+};
 
+template <int M_1, int M_2, typename SimN, typename SimN_1, typename Vector>
+inline void emplace_vector_all(const SimN& simplex1_, const SimN_1& simplex2_, Vector& vec) {
+    emplace_vector_two<M_2, SimN, SimN_1, Vector> closure(simplex1_, simplex2_, vec);
+    meta_loop<M_1>(closure);
+}
 
 namespace my {
     template<class T, int N>

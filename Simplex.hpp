@@ -119,6 +119,10 @@ public:
             return true;
         else return false;
     }
+    template<typename Vec>
+    void emplace_vector(const Simplex<N - 1, T>& right, Vec& vector_ker) const {
+        emplace_vector_all<N + 1, N, gen_vector_t, typename Simplex<N - 1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    }
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
@@ -199,6 +203,10 @@ public:
             return true;
         else return false;
     }
+    template<typename Vec>
+    void emplace_vector(const Simplex<1, T>& right, Vec& vector_ker) const {
+        emplace_vector_all<3, 2, gen_vector_t, typename Simplex<1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    }
     //operators==================================================================
 
     Simplex& operator + (const Simplex& other) {
@@ -276,6 +284,10 @@ public:
             return true;
         else return false;
     }
+    template<typename Vec>
+    void emplace_vector(const Simplex<0, T>& right, Vec& vector_ker) const {
+        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    }
     //operators==================================================================
 
     Simplex& operator + (Simplex& other) {
@@ -351,6 +363,10 @@ public:
         if(predicate_index == 1)
             return true;
         else return false;
+    }
+    template<typename Vec>
+    void emplace_vector(const Simplex<-1, T>& right, Vec& vector_ker) const {
+//        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
 

@@ -26,6 +26,7 @@
 #include <variant>
 #include <any>
 #include <cmath>
+#include <set>
 
 #include "Simplex.hpp"
 #include "Vector_space.hpp"
@@ -171,6 +172,7 @@ template<int N, class Complex>
 inline constexpr auto Image(const Complex& chain) {
     return boundary<N>(chain);
 }
+using namespace hana::literals;
 template<class Ker, class Im>
 inline constexpr auto quotient(const Ker& ker, const Im& im) {
     constexpr size_t tupleSize = decltype(hana::size(std::declval<Im>()))::value;
@@ -185,12 +187,10 @@ inline constexpr auto quotient(const Ker& ker, const Im& im) {
 //    std::cout << boost::core::demangled_name(ti) << "; " << Simplex_type::dim << std::endl;
 //    hana::for_each(ker, print_type(std::cout));
 //    hana::for_each(im, print_type(std::cout));
-    std::vector<subsimplex_type> vector_ker;
+    std::vector<Vector_type> vector_ker;
     hana::for_each(ker, [&vector_ker, &im](const auto& x) {
         hana::for_each(im, [&vector_ker, &x](const auto& y) {
-            if(y != x) {
-                vector_ker.emplace_back(y);
-            }
+            y.template emplace_vector<std::vector<Vector_type>>(x, vector_ker);
         });
     });
     return unpack_to_tuple(vector_ker, std::make_index_sequence<tupleSize>());

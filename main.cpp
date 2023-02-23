@@ -79,7 +79,7 @@ int main()
     auto homology = quotient(Ker_N1, Img_N1);
     std::cout << "Группа гомологий: " << std::endl;
     hana::for_each(homology, [](auto x) {
-        std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
+        std::cout << "Vector space dim = " << decltype(x)::dim << "; Ring Z value = " << x << '\n';
     });
     return 0;
 }
