@@ -201,9 +201,19 @@ public:
     template <int J>
     void apply() {
         if(fusion::at_c<I>(simplex_vertex1) != fusion::at_c<J>(simplex_vertex2)) {
+            auto tmp1 = fusion::at_c<I>(simplex_vertex1).get_vector();
+            auto tmp2 = fusion::at_c<J>(simplex_vertex2).get_vector();
 //            std::cout << fusion::at_c<I>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
-            vec.emplace_back(fusion::at_c<J>(simplex_vertex2));
-            vec.emplace_back(fusion::at_c<I>(simplex_vertex1));
+//            fusion::for_each(tmp1, [this](auto& z) mutable {
+////                std::cout << " != " << z << std::endl;
+//                vec.emplace_back(z);
+//            });
+            fusion::for_each(tmp2, [this](auto& z) mutable {
+//                std::cout << " != " << z << std::endl;
+                vec.emplace_back(z);
+            });
+//            vec.emplace_back(fusion::at_c<J>(simplex_vertex2));
+//            vec.emplace_back(fusion::at_c<I>(simplex_vertex1));
         }
     }
 };

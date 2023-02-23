@@ -187,13 +187,16 @@ inline constexpr auto quotient(const Ker& ker, const Im& im) {
 //    std::cout << boost::core::demangled_name(ti) << "; " << Simplex_type::dim << std::endl;
 //    hana::for_each(ker, print_type(std::cout));
 //    hana::for_each(im, print_type(std::cout));
-    std::vector<Vector_type> vector_ker;
+    std::vector<typename Vector_type::value_type> vector_ker;
     hana::for_each(ker, [&vector_ker, &im](const auto& x) {
         hana::for_each(im, [&vector_ker, &x](const auto& y) {
-            y.template emplace_vector<std::vector<Vector_type>>(x, vector_ker);
+            y.template emplace_vector<std::vector<int>>(x, vector_ker);
         });
     });
-    return unpack_to_tuple(vector_ker, std::make_index_sequence<tupleSize>());
+    std::sort( vector_ker.begin(), vector_ker.end() );
+    vector_ker.erase( std::unique( vector_ker.begin(), vector_ker.end() ), vector_ker.end() );
+//    return unpack_to_tuple(vector_ker, std::make_index_sequence<tupleSize>());
+    return vector_ker;
 }
 
 #endif // SIMPLICIAL_COMPLEX_HPP

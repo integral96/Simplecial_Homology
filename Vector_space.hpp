@@ -38,6 +38,9 @@ public:
     bool get_zero() const {
         return vector_ == gen_vector_t();
     }
+    gen_vector_t const& get_vector() const {
+        return vector_;
+    }
 
     //operators==================================================================
     Vector_space& operator += (const Vector_space& other) {
