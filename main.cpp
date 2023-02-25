@@ -2,15 +2,16 @@
 
 #include "Simplicial_complex.hpp"
 #include "Vector_space.hpp"
-static constexpr int N = 3;
+static constexpr int N = 4;
+static constexpr int M = 0;
 using vector_space = Vector_space<4, int>;
 int main()
 {
-    vector_space d0(2, 4, 3, -2);
-    vector_space d1(-1, 3, -2, 5);
-    vector_space d2(1, -5, 3, 2);
-    vector_space d3(-1, -6, 2, 4);
-    vector_space d4(-2, 1, -3, 2);
+    vector_space d0( 2,  4,  3, -2);
+    vector_space d1(-1,  3, -2,  5);
+    vector_space d2( 1, -5,  3,  2);
+    vector_space d3(-1, -6,  2,  4);
+    vector_space d4(-2,  1, -3,  2);
 
     Simplex<5, vector_space> simplex5D_0(d0, d1, d2, d3, d4, d2);
     Simplex<5, vector_space> simplex5D_1(d2, d4, d0, d3, d0, d1);
@@ -60,29 +61,31 @@ int main()
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });
     std::cout << "Определим цепь для циклов: " << std::endl;
-    auto chain_Im = complex_simpl.chain_unit<N + 1>();
+    auto chain_Im = complex_simpl.chain_unit<M + 1>();
     hana::for_each(chain_Im, [](auto x) {
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });
 //    auto Kern_N  = Kernel<N>(chain_1);
-    std::cout << "Определим границы для циклов: " << N + 1 << std::endl;
-    auto Img_N1  = Image<N + 1>(chain_Im);
+    std::cout << "Определим границы для циклов: " << M + 1 << std::endl;
+    auto Img_N1  = Image<M + 1>(chain_Im);
     hana::for_each(Img_N1, [](auto x) {
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });
-    std::cout << "Определим циклы: " << N + 1 << std::endl;
-    auto chain_Ker = complex_simpl.chain_unit<N>();
-    auto Ker_N1  = Kernel<N>(chain_Ker);
+    std::cout << "Определим циклы: " << M << std::endl;
+    auto chain_Ker = complex_simpl.chain_unit<M>();
+    auto Ker_N1  = Kernel<M>(chain_Ker);
     hana::for_each(Ker_N1, [](auto x) {
         std::cout << "Simplex dim = " << decltype(x)::dim << "; value = " << x << '\n';
     });
     auto homology = quotient(Ker_N1, Img_N1);
-    std::cout << "Группа гомологий: K = " << N << std::endl;
-    std::cout << "{";
+    std::cout << "Группа гомологий: K = " << M << std::endl;
     for(const  auto& x : homology) {
-        std::cout << x << ", ";
+        std::cout << "<";
+        for(const  auto& y : x) {
+            std::cout << y << " ";
+        }
+        std::cout << ">\n";
     }
-    std::cout << "}\n";
 
     return 0;
 }

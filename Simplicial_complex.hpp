@@ -133,36 +133,67 @@ inline constexpr auto boundary(const Complex& chain) {
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Complex>()))
                                         >::value_type Vector_type;
+    using ring_type = typename Vector_type::value_type;
 //    auto const& ti = BOOST_CORE_TYPEID(Vector_type);
 //    std::cout << boost::core::demangled_name(ti) << std::endl;
 //    std::cout << "Количество симплексов размерности: " << N << "; равно: " << tupleSize << '\n';
-    using subsimplex_type = Simplex<N - 1, Vector_type>;
-    std::vector<subsimplex_type> vector;
-    hana::for_each(chain, [&vector](const auto& x) {
-        auto tnp = x.boundary_sub();
-        std::cout << "Разложение в " << N << "-цепь." << '\n';
-        int k = 0;
-        fusion::for_each(tnp, [j = k](const auto& y) mutable {
-            auto znak = std::pow(-1, j);
-            if(znak == -1)
-                std::cout << "-" << y << '\n';
-            else
-                std::cout << "+" << y << '\n';
-            ++j;
+    if constexpr(N == 0) {
+        using subsimplex_type = Simplex<0, Vector_type>;
+        std::vector<subsimplex_type> vector;
+        hana::for_each(chain, [&vector](const auto& x) {
+            auto tnp = x.get_simplex();
+            std::cout << "Разложение в " << N << "-цепь." << '\n';
+            int k = 0;
+            fusion::for_each(tnp, [j = k](const auto& y) mutable {
+                auto znak = std::pow(-1, j);
+                if(znak == -1)
+                    std::cout << "-" << y << '\n';
+                else
+                    std::cout << "+" << y << '\n';
+                ++j;
+            });
+            std::cout <<  '\n';
+            int p = 0;
+            auto dth = fusion::at<mpl::int_<0>>(tnp);
+            fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
+                auto z_tmp = z*ring_type(std::pow(-1, j));
+                if(z_tmp != dth) {
+                    dth += z_tmp;
+                }
+                ++j;
+            });
+            vector.emplace_back(dth);
         });
-        std::cout <<  '\n';
-        int p = 0;
-        auto dth = fusion::at<mpl::int_<0>>(tnp);
-        fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
-            auto z_tmp = z*std::pow(-1, j);
-            if(z_tmp != dth) {
-                dth = dth + z_tmp;
-            }
-            ++j;
+        return unpack_to_tuple(vector, std::make_index_sequence<tupleSize>());
+    } else {
+        using subsimplex_type = Simplex<N - 1, Vector_type>;
+        std::vector<subsimplex_type> vector;
+        hana::for_each(chain, [&vector](const auto& x) {
+            auto tnp = x.boundary_sub();
+            std::cout << "Разложение в " << N << "-цепь." << '\n';
+            int k = 0;
+            fusion::for_each(tnp, [j = k](const auto& y) mutable {
+                auto znak = std::pow(-1, j);
+                if(znak == -1)
+                    std::cout << "-" << y << '\n';
+                else
+                    std::cout << "+" << y << '\n';
+                ++j;
+            });
+            std::cout <<  '\n';
+            int p = 0;
+            auto dth = fusion::at<mpl::int_<0>>(tnp);
+            fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
+                auto z_tmp = z*std::pow(-1, j);
+                if(z_tmp != dth) {
+                    dth = dth + z_tmp;
+                }
+                ++j;
+            });
+            vector.emplace_back(dth);
         });
-        vector.emplace_back(dth);
-    });
-    return unpack_to_tuple(vector, std::make_index_sequence<tupleSize>());
+        return unpack_to_tuple(vector, std::make_index_sequence<tupleSize>());
+    }
 }
 template<int N, class Complex>
 inline constexpr auto Kernel(const Complex& chain) {
@@ -183,19 +214,20 @@ inline constexpr auto quotient(const Ker& ker, const Im& im) {
                                         decltype(hana::front(std::declval<Im>()))
                                         >::value_type Vector_type;
     using subsimplex_type = Simplex<Simplex_type::dim, Vector_type>;
+    using group_type = std::set<typename Vector_type::value_type>;
 //    auto const& ti = BOOST_CORE_TYPEID(Simplex_type);
 //    std::cout << boost::core::demangled_name(ti) << "; " << Simplex_type::dim << std::endl;
 //    hana::for_each(ker, print_type(std::cout));
 //    hana::for_each(im, print_type(std::cout));
-    std::vector<typename Vector_type::value_type> vector_ker;
+
+    std::vector<group_type> vector_ker;
     hana::for_each(ker, [&vector_ker, &im](const auto& x) {
         hana::for_each(im, [&vector_ker, &x](const auto& y) {
-            y.template emplace_vector<std::vector<int>>(x, vector_ker);
+            y.template emplace_vector<std::vector<group_type>>(x, vector_ker);
         });
     });
     std::sort( vector_ker.begin(), vector_ker.end() );
     vector_ker.erase( std::unique( vector_ker.begin(), vector_ker.end() ), vector_ker.end() );
-//    return unpack_to_tuple(vector_ker, std::make_index_sequence<tupleSize>());
     return vector_ker;
 }
 

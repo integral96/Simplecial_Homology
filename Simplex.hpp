@@ -40,9 +40,6 @@ inline void boundary_all(const IN& simplex_) {
     std::cout << std::endl;
 }
 
-template<int N, typename T>
-struct Simplex;
-
 template <int N, typename T>
 struct Chain
 {
@@ -286,7 +283,7 @@ public:
     }
     template<typename Vec>
     void emplace_vector(const Simplex<0, T>& right, Vec& vector_ker) const {
-        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<0, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
 
@@ -365,8 +362,8 @@ public:
         else return false;
     }
     template<typename Vec>
-    void emplace_vector(const Simplex<-1, T>& right, Vec& vector_ker) const {
-//        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    void emplace_vector(const Simplex/*<-1, T>*/& right, Vec& vector_ker) const {
+        emplace_vector_all<1, 1, gen_vector_t, typename Simplex::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
 
@@ -381,7 +378,14 @@ public:
         return *this;
     }
     //comparison operators==================================================================
-    friend bool operator != (const Simplex<0, T>& left, const Simplex<-1, T>& right) {
+    bool operator == (const Simplex& other) const {
+        int predicate_index{};
+        predicate_all<1, gen_vector_t>(simplex_vertex, other.simplex_vertex, predicate_index);
+        if(predicate_index == 1)
+            return true;
+        else return false;
+    }
+    friend bool operator == (const Simplex<0, T>& left, const Simplex<-1, T>& right) {
         int predicate_index{};
         predicateN_all<1, 0, typename Simplex<0, T>::gen_vector_t, typename Simplex<-1, T>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
         if(predicate_index == 0)
@@ -391,6 +395,7 @@ public:
     bool operator != (const Simplex& other) const {
         return !this->operator==( other );
     }
+
     friend std::ostream& operator << (std::ostream& o, const Simplex& s) {
         o << "{ ";
         fusion::for_each(s.simplex_vertex, print_(o));
@@ -401,6 +406,7 @@ public:
 template<typename T>
 struct Simplex<-1, T> {
     using value_type = T;
+    using ring_type  = typename T::value_type;
     static constexpr int dim = -1;
     using gen_vector_t = fusion::vector<T>;
     Simplex(){}
@@ -410,6 +416,23 @@ struct Simplex<-1, T> {
     }
     gen_vector_t get_simplex() {
         return gen_vector_t();
+    }
+    bool empty() const {
+        return true;
+    }
+    Simplex& operator * (ring_type other) {
+        return *this;
+    }
+    Simplex& operator + (Simplex& other) {
+        return *this;
+    }
+    bool operator != (const Simplex& other) const {
+        return true;
+    }
+    friend std::ostream& operator << (std::ostream& o, const Simplex& s) {
+        o << "{ ";
+        o << "}";
+        return o;
     }
 };
 

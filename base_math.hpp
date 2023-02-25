@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <utility>
+#include <concepts>
 
 #include <boost/fusion/include/make_vector.hpp>
 #include <boost/fusion/iterator.hpp>
@@ -21,6 +22,10 @@
 
 namespace fusion = boost::fusion;
 namespace mpl = boost::mpl;
+
+template<int N, typename T>
+struct Simplex;
+
 
 template<class T, typename... Args>
 inline constexpr bool is_same_v_ = (std::is_same_v<T, Args> && ...);
@@ -189,9 +194,10 @@ inline void predicateN_all(const IN& simplex1_, const IN_1& simplex2_, int& inde
     predicateN_two<M_2, IN, IN_1> closure(simplex1_, simplex2_, index);
     meta_loop<M_1>(closure);
 }
-template <int I, typename SimN, typename SimN_1, typename Vector>
+template <int I, typename SimN, typename SimN_1, typename Vector> requires (Vector{})
 struct emplace_vector_one {
 private:
+    using value_type = typename Vector::value_type;
     const SimN& simplex_vertex1;
     const SimN_1& simplex_vertex2;
     Vector& vec;
@@ -203,17 +209,11 @@ public:
         if(fusion::at_c<I>(simplex_vertex1) != fusion::at_c<J>(simplex_vertex2)) {
             auto tmp1 = fusion::at_c<I>(simplex_vertex1).get_vector();
             auto tmp2 = fusion::at_c<J>(simplex_vertex2).get_vector();
-//            std::cout << fusion::at_c<I>(simplex_vertex1) << " != " << fusion::at_c<J>(simplex_vertex2) << std::endl;
-//            fusion::for_each(tmp1, [this](auto& z) mutable {
-////                std::cout << " != " << z << std::endl;
-//                vec.emplace_back(z);
-//            });
-            fusion::for_each(tmp2, [this](auto& z) mutable {
-//                std::cout << " != " << z << std::endl;
-                vec.emplace_back(z);
+            value_type tmp;
+            fusion::for_each(tmp2, [this, &tmp](auto& z) {
+                tmp.insert(z);
             });
-//            vec.emplace_back(fusion::at_c<J>(simplex_vertex2));
-//            vec.emplace_back(fusion::at_c<I>(simplex_vertex1));
+            vec.emplace_back(tmp);
         }
     }
 };
@@ -261,7 +261,7 @@ namespace my {
         }
     };
     template<int N, class T>
-    T constexpr pow_(T const x) {
+    T consteval  pow_(T const x) {
         return helper<T, N>::pow_(x);
     }
 }
