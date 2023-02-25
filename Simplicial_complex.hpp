@@ -17,6 +17,7 @@
 #include <boost/hana/functional/iterate.hpp>
 #include <boost/hana/functional/placeholder.hpp>
 #include <boost/hana/functional/fix.hpp>
+#include <boost/hana/is_empty.hpp>
 #include <boost/hana/fuse.hpp>
 #include <boost/hana/at.hpp>
 #include <boost/hana/traits.hpp>
@@ -127,8 +128,9 @@ inline  auto curry(Left& left, Right& right) {
     return hana::equal(left, right);
 }
 
-template<int N, class Complex>
+template<int N, class Complex> requires  (N >= 0)
 inline constexpr auto boundary(const Complex& chain) {
+    BOOST_HANA_CONSTANT_CHECK(!hana::is_empty(Complex{}));
     constexpr size_t tupleSize = decltype(hana::size(std::declval<Complex>()))::value;
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Complex>()))
@@ -142,17 +144,17 @@ inline constexpr auto boundary(const Complex& chain) {
         std::vector<subsimplex_type> vector;
         hana::for_each(chain, [&vector](const auto& x) {
             auto tnp = x.get_simplex();
-            std::cout << "Разложение в " << N << "-цепь." << '\n';
-            int k = 0;
-            fusion::for_each(tnp, [j = k](const auto& y) mutable {
-                auto znak = std::pow(-1, j);
-                if(znak == -1)
-                    std::cout << "-" << y << '\n';
-                else
-                    std::cout << "+" << y << '\n';
-                ++j;
-            });
-            std::cout <<  '\n';
+//            std::cout << "Разложение в " << N << "-цепь." << '\n';
+//            int k = 0;
+//            fusion::for_each(tnp, [j = k](const auto& y) mutable {
+//                auto znak = std::pow(-1, j);
+//                if(znak == -1)
+//                    std::cout << "-" << y << '\n';
+//                else
+//                    std::cout << "+" << y << '\n';
+//                ++j;
+//            });
+//            std::cout <<  '\n';
             int p = 0;
             auto dth = fusion::at<mpl::int_<0>>(tnp);
             fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
@@ -170,17 +172,17 @@ inline constexpr auto boundary(const Complex& chain) {
         std::vector<subsimplex_type> vector;
         hana::for_each(chain, [&vector](const auto& x) {
             auto tnp = x.boundary_sub();
-            std::cout << "Разложение в " << N << "-цепь." << '\n';
-            int k = 0;
-            fusion::for_each(tnp, [j = k](const auto& y) mutable {
-                auto znak = std::pow(-1, j);
-                if(znak == -1)
-                    std::cout << "-" << y << '\n';
-                else
-                    std::cout << "+" << y << '\n';
-                ++j;
-            });
-            std::cout <<  '\n';
+//            std::cout << "Разложение в " << N << "-цепь." << '\n';
+//            int k = 0;
+//            fusion::for_each(tnp, [j = k](const auto& y) mutable {
+//                auto znak = std::pow(-1, j);
+//                if(znak == -1)
+//                    std::cout << "-" << y << '\n';
+//                else
+//                    std::cout << "+" << y << '\n';
+//                ++j;
+//            });
+//            std::cout <<  '\n';
             int p = 0;
             auto dth = fusion::at<mpl::int_<0>>(tnp);
             fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
@@ -206,6 +208,7 @@ inline constexpr auto Image(const Complex& chain) {
 using namespace hana::literals;
 template<class Ker, class Im>
 inline constexpr auto quotient(const Ker& ker, const Im& im) {
+    BOOST_HANA_CONSTANT_CHECK(!hana::is_empty(Ker{}) && !hana::is_empty(Im{}));
     constexpr size_t tupleSize = decltype(hana::size(std::declval<Im>()))::value;
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Im>()))
