@@ -25,7 +25,13 @@ namespace mpl = boost::mpl;
 
 template<int N, typename T>
 struct Simplex;
+template<size_t N, typename T>
+class Vector_space;
 
+template<typename Simplex, class = bool>
+struct IsSimplex : mpl::false_ {};
+template<typename Simplex>
+struct IsSimplex<Simplex, typename Simplex::value > : mpl::true_ {};
 
 template<class T, typename... Args>
 inline constexpr bool is_same_v_ = (std::is_same_v<T, Args> && ...);
@@ -37,16 +43,16 @@ struct remove_cvref {
 template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
-template <int N, int I, class Closure>
-typename std::enable_if_t<(I == N)> is_meta_loop(Closure& closure) {}
+template <int N, int I, class Closure> requires (I == N)
+constexpr void is_meta_loop(Closure& closure) {}
 
-template <int N, int I, class Closure>
-typename std::enable_if_t<(I < N)> is_meta_loop(Closure& closure) {
+template <int N, int I, class Closure> requires (I < N)
+constexpr void is_meta_loop(Closure& closure) {
     closure.template apply<I>();
     is_meta_loop<N, I + 1>(closure);
 }
 template <int N, class Closure>
-void meta_loop(Closure& closure) {
+constexpr void meta_loop(Closure& closure) {
     is_meta_loop<N, 0>(closure);
 }
 struct print_ {
@@ -58,11 +64,12 @@ struct print_ {
     }
 };
 
-template<class Simpl, size_t... S>
+template<class Simpl, size_t... S> requires Simpl::value_type::is_vs
 inline Simpl unpack_vector(const std::vector<typename Simpl::value_type>& vec, std::index_sequence<S...>) {
     Simpl simpl(vec[S]...);
     return simpl;
 }
+
 template <int I, int N1, typename IN, typename T>
 struct for_one {
 private:
@@ -194,7 +201,7 @@ inline void predicateN_all(const IN& simplex1_, const IN_1& simplex2_, int& inde
     predicateN_two<M_2, IN, IN_1> closure(simplex1_, simplex2_, index);
     meta_loop<M_1>(closure);
 }
-template <int I, typename SimN, typename SimN_1, typename Vector> requires (Vector{})
+template <int I, typename SimN, typename SimN_1, typename Vector>
 struct emplace_vector_one {
 private:
     using value_type = typename Vector::value_type;
@@ -233,7 +240,8 @@ public:
     }
 };
 
-template <int M_1, int M_2, typename SimN, typename SimN_1, typename Vector>
+template <int M_1, int M_2, typename SimN, typename SimN_1, typename Vector> requires (decltype(fusion::size(std::declval<SimN>()))::value == M_1 &&
+                                                                                       decltype(fusion::size(std::declval<SimN_1>()))::value == M_2)
 inline void emplace_vector_all(const SimN& simplex1_, const SimN_1& simplex2_, Vector& vec) {
     emplace_vector_two<M_2, SimN, SimN_1, Vector> closure(simplex1_, simplex2_, vec);
     meta_loop<M_1>(closure);

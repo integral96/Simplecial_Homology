@@ -19,6 +19,7 @@ struct product_scalr_ {
 template<size_t N, typename T>
 class Vector_space {
 public:
+    static constexpr bool is_vs = true;
     using value_type = T;
     static constexpr int dim = N;
 private:

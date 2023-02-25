@@ -79,6 +79,7 @@ struct boundary_chain
 
 template<int N, typename T>
 struct Simplex {
+    static constexpr bool value = true;
     using value_type = T;
     using ring_type  = typename T::value_type;
     using simpl_type = Simplex<N - 1, T>;
@@ -160,6 +161,7 @@ public:
 };
 template<typename T>
 struct Simplex<2, T> {
+    static constexpr bool value = true;
     using value_type = T;
     using ring_type  = typename T::value_type;
     using simpl_type = Simplex<1, T>;
@@ -243,6 +245,7 @@ public:
 };
 template<typename T>
 struct Simplex<1, T> {
+    static constexpr bool value = true;
     using value_type = T;
     using ring_type  = typename T::value_type;
     using simpl_type = Simplex<0, T>;
@@ -324,6 +327,7 @@ public:
 };
 template<typename T>
 struct Simplex<0, T> {
+    static constexpr bool value = true;
     using value_type = T;
     using ring_type  = typename T::value_type;
     using simpl_type = Simplex<-1, T>;
@@ -405,6 +409,7 @@ public:
 };
 template<typename T>
 struct Simplex<-1, T> {
+    static constexpr bool value = true;
     using value_type = T;
     using ring_type  = typename T::value_type;
     static constexpr int dim = -1;

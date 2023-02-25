@@ -3,7 +3,7 @@
 #include "Simplicial_complex.hpp"
 #include "Vector_space.hpp"
 static constexpr int N = 4;
-static constexpr int M = 0;
+static constexpr int M = 3;
 using vector_space = Vector_space<4, int>;
 int main()
 {
