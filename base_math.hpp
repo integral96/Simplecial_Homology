@@ -7,6 +7,7 @@
 #include <iostream>
 #include <utility>
 #include <concepts>
+#include <cmath>
 
 #include <boost/fusion/include/make_vector.hpp>
 #include <boost/fusion/iterator.hpp>
@@ -20,6 +21,29 @@
 #include <boost/static_assert.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/type_index.hpp>
+#include <boost/hana/assert.hpp>
+#include <boost/hana/for_each.hpp>
+#include <boost/hana/core/make.hpp>
+#include <boost/hana/equal.hpp>
+#include <boost/hana/tuple.hpp>
+#include <boost/hana/integral_constant.hpp>
+#include <boost/hana/map.hpp>
+#include <boost/hana/pair.hpp>
+#include <boost/hana/type.hpp>
+#include <boost/hana/fold_left.hpp>
+#include <boost/hana/insert.hpp>
+#include <boost/hana/remove_if.hpp>
+#include <boost/hana/functional/compose.hpp>
+#include <boost/hana/functional/iterate.hpp>
+#include <boost/hana/functional/placeholder.hpp>
+#include <boost/hana/functional/fix.hpp>
+#include <boost/hana/is_empty.hpp>
+#include <boost/hana/fuse.hpp>
+#include <boost/hana/at.hpp>
+#include <boost/hana/traits.hpp>
+#include <boost/core/typeinfo.hpp>
+#include <boost/hana/count.hpp>
+#include <boost/hana/size.hpp>
 
 namespace fusion = boost::fusion;
 namespace mpl = boost::mpl;
@@ -31,10 +55,12 @@ class Vector_space;
 
 using quaternon_type = std::array<int, 4>;
 
-inline quaternon_type& operator*(quaternon_type& arr, int val) {
-    for(size_t i = 0; i < arr.size(); ++i) arr[i] *= val;
-    return arr;
+inline quaternon_type operator*(const quaternon_type& arr, int val) {
+    quaternon_type tmp_qv;
+    for(size_t i = 0; i < arr.size(); ++i) tmp_qv[i] = arr[i]*val;
+    return tmp_qv;
 }
+
 inline quaternon_type& operator*=(quaternon_type& arr, int val) {
     for(size_t i = 0; i < arr.size(); ++i) arr[i] *= val;
     return arr;
@@ -237,7 +263,7 @@ public:
     template <int J>
     void apply() {
         if(fusion::at_c<I>(simplex_vertex1) != fusion::at_c<J>(simplex_vertex2)) {
-            auto tmp1 = fusion::at_c<I>(simplex_vertex1).get_vector();
+//            auto tmp1 = fusion::at_c<I>(simplex_vertex1).get_vector();
             auto tmp2 = fusion::at_c<J>(simplex_vertex2).get_vector();
             value_type tmp;
             fusion::for_each(tmp2, [this, &tmp](const auto& z) {
@@ -295,6 +321,11 @@ namespace my {
     template<int N, class T>
     T consteval  pow_(T const x) {
         return helper<T, N>::pow_(x);
+    }
+    inline double norm(const quaternon_type& arr) {
+        double tmp{};
+        for(size_t i = 0; i < arr.size(); ++i) tmp += arr[i]*arr[i];
+        return std::sqrt(tmp);
     }
 }
 

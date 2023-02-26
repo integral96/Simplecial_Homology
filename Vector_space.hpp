@@ -41,6 +41,13 @@ public:
         });
         return *this;
     }
+    double norm() const {
+        double value{};
+        fusion::for_each(vector_, [&value](const auto& x) {
+            value += my::norm(x)*my::norm(x);
+        });
+        return std::sqrt(value);
+    }
     template< typename F, typename = std::enable_if_t<std::is_same_v<ring_type, F>>>
     Vector_space& operator * (F value) {
         fusion::for_each(vector_, [value](auto& x) {
@@ -60,12 +67,6 @@ public:
         plus_all<N, gen_vector_t>(vector_, other.vector_);
         return *this;
     }
-//    template< typename F, typename = std::enable_if_t<std::is_same_v<Base_, F>>>
-//    friend Vector_space& operator*(Vector_space& lhs, F rhs)
-//    {
-//        lhs *= rhs;
-//        return lhs;
-//    }
 
     bool operator == (const Vector_space& other) const {
         int predicate_index{};

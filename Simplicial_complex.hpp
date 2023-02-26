@@ -1,32 +1,9 @@
 #ifndef SIMPLICIAL_COMPLEX_HPP
 #define SIMPLICIAL_COMPLEX_HPP
 
-#include <boost/hana/assert.hpp>
-#include <boost/hana/for_each.hpp>
-#include <boost/hana/core/make.hpp>
-#include <boost/hana/equal.hpp>
-#include <boost/hana/tuple.hpp>
-#include <boost/hana/integral_constant.hpp>
-#include <boost/hana/map.hpp>
-#include <boost/hana/pair.hpp>
-#include <boost/hana/type.hpp>
-#include <boost/hana/fold_left.hpp>
-#include <boost/hana/insert.hpp>
-#include <boost/hana/remove_if.hpp>
-#include <boost/hana/functional/compose.hpp>
-#include <boost/hana/functional/iterate.hpp>
-#include <boost/hana/functional/placeholder.hpp>
-#include <boost/hana/functional/fix.hpp>
-#include <boost/hana/is_empty.hpp>
-#include <boost/hana/fuse.hpp>
-#include <boost/hana/at.hpp>
-#include <boost/hana/traits.hpp>
-#include <boost/core/typeinfo.hpp>
-#include <boost/hana/count.hpp>
-#include <boost/hana/size.hpp>
+
 #include <variant>
 #include <any>
-#include <cmath>
 
 #include "Simplex.hpp"
 #include "Vector_space.hpp"
@@ -212,7 +189,7 @@ using namespace hana::literals;
 template<class Ker, class Im>
 inline constexpr auto quotient(const Ker& ker, const Im& im) {
     BOOST_HANA_CONSTANT_CHECK(!hana::is_empty(Ker{}) && !hana::is_empty(Im{}));
-    constexpr size_t tupleSize = decltype(hana::size(std::declval<Im>()))::value;
+//    constexpr size_t tupleSize = decltype(hana::size(std::declval<Im>()))::value;
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Im>()))
                                         > Simplex_type;

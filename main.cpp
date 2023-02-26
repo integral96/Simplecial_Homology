@@ -3,6 +3,8 @@
 
 #include "Simplicial_complex.hpp"
 #include "Vector_space.hpp"
+#include "group_comm.hpp"
+
 static constexpr int C_N = 5;
 static constexpr int N = 4;
 static constexpr int M = 0;
@@ -115,12 +117,12 @@ inline void homology_group(const Simplcl_cmplx& simplcl_cmplx) {
 
 int main()
 {
-    quaternon_type e0{1, 0, 0, 0};
-    quaternon_type e1{0, 1, 0, 0};
-    quaternon_type e2{0, 0, 1, 0};
-    quaternon_type e3{0, 0, 0, 1};
+    const quaternon_type e0{1, 0, 0, 0};
+    const quaternon_type e1{0, 1, 0, 0};
+    const quaternon_type e2{0, 0, 1, 0};
+    const quaternon_type e3{0, 0, 0, 1};
 
-    vector_space d0( e0*2,    e1*(-1), e2*(-5), e3);
+    vector_space d0( e0*2,    e1*(-1), e2*(-5), e3); // 4+1 +25 +1
     vector_space d1( e0*(-1), e1*3,    e2*(-2), e3*5);
     vector_space d2( e0*1,    e1*(-5), e2*3,    e3*2);
     vector_space d3( e0*(-1), e1*(-6), e2*2,    e3*4);
@@ -147,7 +149,6 @@ int main()
     Simplex<0, vector_space> simplex0D_1(d1);
     Simplex<0, vector_space> simplex0D_2(d2);
 
-
     std::cout << "\033[1;31mСоздание комплекса до размерностей \033[0m" << N << "-х" << std::endl;
     auto complex = make_complex(simplex5D_0, simplex5D_1, simplex5D_2,
                                 simplex4D_0, simplex4D_1, simplex3D_0,
@@ -167,6 +168,7 @@ int main()
     homology_group<N, Simpl_complex_type>(complex_simpl);
 
     std::cout << "\033[1;31mВыполнено\033[0m" << std::endl;
+
 
     return 0;
 }
