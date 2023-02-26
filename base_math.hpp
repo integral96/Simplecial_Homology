@@ -19,6 +19,7 @@
 #include <boost/fusion/algorithm.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/mp11/algorithm.hpp>
+#include <boost/type_index.hpp>
 
 namespace fusion = boost::fusion;
 namespace mpl = boost::mpl;
@@ -27,6 +28,28 @@ template<int N, typename T>
 struct Simplex;
 template<size_t N, typename T>
 class Vector_space;
+
+using quaternon_type = std::array<int, 4>;
+
+inline quaternon_type& operator*(quaternon_type& arr, int val) {
+    for(size_t i = 0; i < arr.size(); ++i) arr[i] *= val;
+    return arr;
+}
+inline quaternon_type& operator*=(quaternon_type& arr, int val) {
+    for(size_t i = 0; i < arr.size(); ++i) arr[i] *= val;
+    return arr;
+}
+inline quaternon_type& operator+=(quaternon_type& arr, const quaternon_type& other) {
+    for(size_t i = 0; i < arr.size(); ++i) arr[i] = arr[i] + other[i];
+    return arr;
+}
+
+std::ostream& operator << (std::ostream& o, const quaternon_type& s) {
+    for(const auto& x : s) {
+        if(x != 0) o << x;
+    }
+    return o;
+}
 
 template<typename Simplex, class = bool>
 struct IsSimplex : mpl::false_ {};
@@ -64,8 +87,8 @@ struct print_ {
     }
 };
 
-template<class Simpl, size_t... S> requires Simpl::value_type::is_vs
-inline Simpl unpack_vector(const std::vector<typename Simpl::value_type>& vec, std::index_sequence<S...>) {
+template<class Simpl, size_t... S> requires Simpl::space_type::is_vs
+inline Simpl unpack_vector(const std::vector<typename Simpl::space_type>& vec, std::index_sequence<S...>) {
     Simpl simpl(vec[S]...);
     return simpl;
 }
@@ -93,7 +116,7 @@ public:
     for_two(OUT& RESULT_, const IN& simplex_) : RESULT(RESULT_), simplex_vertex(simplex_)  {}
     template <int I>
     void apply() {
-        for_one<I, N1, IN, typename Simpl::value_type> closure(simplex_vertex);
+        for_one<I, N1, IN, typename Simpl::space_type> closure(simplex_vertex);
         meta_loop<N1>(closure);
         fusion::at_c<I>(RESULT) = unpack_vector<Simpl>(closure.RESULT, std::make_index_sequence<N1 - 1>());
     }
@@ -115,7 +138,7 @@ public:
     template <int J>
     void apply() {
         if constexpr(J == I) {
-            fusion::at_c<J>(simplex_vertex1) += fusion::at_c<J>(simplex_vertex2);
+            fusion::at_c<J>(simplex_vertex1) += fusion::at_c<I>(simplex_vertex2);
         }
     }
 };
@@ -217,7 +240,8 @@ public:
             auto tmp1 = fusion::at_c<I>(simplex_vertex1).get_vector();
             auto tmp2 = fusion::at_c<J>(simplex_vertex2).get_vector();
             value_type tmp;
-            fusion::for_each(tmp2, [this, &tmp](auto& z) {
+            fusion::for_each(tmp2, [this, &tmp](const auto& z) {
+//                std::cout << boost::typeindex::type_id_with_cvr<decltype(z)>().pretty_name() << "\n";
                 tmp.insert(z);
             });
             vec.emplace_back(tmp);

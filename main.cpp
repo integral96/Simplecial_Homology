@@ -1,11 +1,13 @@
 #include <iostream>
+#include <array>
 
 #include "Simplicial_complex.hpp"
 #include "Vector_space.hpp"
 static constexpr int C_N = 5;
 static constexpr int N = 4;
 static constexpr int M = 0;
-using vector_space = Vector_space<4, int>;
+
+using vector_space = Vector_space<4, quaternon_type>;
 
 template <int N, int I, class Closure> requires (I == N)
 constexpr void is_chain_loop(Closure& closure) {}
@@ -84,7 +86,7 @@ public:
             std::cout << "\033[1;32mГруппа гомологий: K = \033[0m" << J << std::endl;
             for(const  auto& x : homology) {
                 std::cout << "<";
-                for(const  auto& y : x) {
+                for(const auto& y : x) {
                     std::cout << y << " ";
                 }
                 std::cout << ">\n";
@@ -108,13 +110,21 @@ inline void homology_group(const Simplcl_cmplx& simplcl_cmplx) {
     homology_group_<Simplcl_cmplx> closure(simplcl_cmplx);
     chain_loop<N>(closure);
 }
+
+
+
 int main()
 {
-    vector_space d0( 2,  4,  3, -2);
-    vector_space d1(-1,  3, -2,  5);
-    vector_space d2( 1, -5,  3,  2);
-    vector_space d3(-1, -6,  2,  4);
-    vector_space d4(-2,  1, -3,  2);
+    quaternon_type e0{1, 0, 0, 0};
+    quaternon_type e1{0, 1, 0, 0};
+    quaternon_type e2{0, 0, 1, 0};
+    quaternon_type e3{0, 0, 0, 1};
+
+    vector_space d0( e0*2,    e1*(-1), e2*(-5), e3);
+    vector_space d1( e0*(-1), e1*3,    e2*(-2), e3*5);
+    vector_space d2( e0*1,    e1*(-5), e2*3,    e3*2);
+    vector_space d3( e0*(-1), e1*(-6), e2*2,    e3*4);
+    vector_space d4( e0*(-2), e1,      e2*(-3), e3*2);
 
     Simplex<5, vector_space> simplex5D_0(d0, d1, d2, d3, d4, d2);
     Simplex<5, vector_space> simplex5D_1(d2, d4, d0, d3, d0, d1);

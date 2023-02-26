@@ -16,24 +16,36 @@ struct product_scalr_ {
 };
 
 
-template<size_t N, typename T>
+template<size_t N, typename Base_>
 class Vector_space {
 public:
     static constexpr bool is_vs = true;
-    using value_type = T;
+    using base_type = Base_;
+    using ring_type  = typename Base_::value_type;
     static constexpr int dim = N;
 private:
-    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<T>, N>;
+    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<Base_>, N>;
     gen_vector_t vector_;
 public:
     Vector_space(){}
-    template<typename... Args, typename = std::enable_if_t<(sizeof... (Args) == N) && is_same_v_<T, remove_cvref_t<Args>...>>>
+    template<typename... Args, typename = std::enable_if_t<(sizeof... (Args) == N) && is_same_v_<Base_, remove_cvref_t<Args>...>>>
     Vector_space(Args&& ... args)
         : vector_(fusion::make_vector(std::forward<Args>(args)...)) {}
+    Vector_space(const Vector_space& other)
+        : vector_(other.vector_) {}
     /* -------------------------------------------------------------------- */
-    template< typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
+    template< typename F, typename = std::enable_if_t<std::is_same_v<ring_type, F>>>
     Vector_space& operator *= (F value) {
-        fusion::for_each(vector_, product_scalr_(value));
+        fusion::for_each(vector_, [value](auto& x) {
+            x *= value;
+        });
+        return *this;
+    }
+    template< typename F, typename = std::enable_if_t<std::is_same_v<ring_type, F>>>
+    Vector_space& operator * (F value) {
+        fusion::for_each(vector_, [value](auto& x) {
+            x *= value;
+        });
         return *this;
     }
     bool get_zero() const {
@@ -48,12 +60,13 @@ public:
         plus_all<N, gen_vector_t>(vector_, other.vector_);
         return *this;
     }
-    template< typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
-    friend Vector_space operator*(Vector_space lhs, F rhs)
-    {
-        lhs *= rhs;
-        return lhs;
-    }
+//    template< typename F, typename = std::enable_if_t<std::is_same_v<Base_, F>>>
+//    friend Vector_space& operator*(Vector_space& lhs, F rhs)
+//    {
+//        lhs *= rhs;
+//        return lhs;
+//    }
+
     bool operator == (const Vector_space& other) const {
         int predicate_index{};
         predicate_all<N, gen_vector_t>(vector_, other.vector_, predicate_index);

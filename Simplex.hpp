@@ -2,6 +2,7 @@
 #define SIMPLEX_HPP
 
 #include "base_math.hpp"
+#include <set>
 
 template <typename T>
 struct boundary_predicate {
@@ -77,14 +78,15 @@ struct boundary_chain
 };
 
 
-template<int N, typename T>
+template<int N, typename Vectr_space>
 struct Simplex {
     static constexpr bool value = true;
-    using value_type = T;
-    using ring_type  = typename T::value_type;
-    using simpl_type = Simplex<N - 1, T>;
+    using space_type = Vectr_space;
+    using ring_type  = typename Vectr_space::ring_type;
+    using simpl_type = Simplex<N - 1, Vectr_space>;
+    using vector_empl_t  = std::vector<std::set<typename space_type::base_type>>;
     static constexpr int dim = N;
-    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<T>, N + 1>;
+    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<Vectr_space>, N + 1>;
 private:
 
     using gen_vector_simpl_t = boost::mp11::mp_repeat_c<fusion::vector<simpl_type>, N + 1>;
@@ -92,7 +94,7 @@ private:
     gen_vector_simpl_t sub_simplex;
 public:
     Simplex() {}
-    template<typename ...Args, std::enable_if_t<(sizeof... (Args) == N + 1) && is_same_v_<T, remove_cvref_t<Args>...>>* = nullptr>
+    template<typename ...Args, std::enable_if_t<(sizeof... (Args) == N + 1) && is_same_v_<Vectr_space, remove_cvref_t<Args>...>>* = nullptr>
     Simplex(Args&&... args) : simplex_vertex(fusion::make_vector(std::forward<Args>(args)...)) {
         for_all<N + 1, N + 1, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
     }
@@ -111,24 +113,24 @@ public:
     bool empty() const {
         int predicate_index{};
         fusion::for_each(simplex_vertex, [&predicate_index](const auto& x) {
-            if(x == T()) ++predicate_index;
+            if(x == Vectr_space()) ++predicate_index;
         });
         if(predicate_index == N + 1)
             return true;
         else return false;
     }
-    template<typename Vec>
-    void emplace_vector(const Simplex<N - 1, T>& right, Vec& vector_ker) const {
-        emplace_vector_all<N + 1, N, gen_vector_t, typename Simplex<N - 1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    template<typename Vec> requires (std::is_same_v<Vec, vector_empl_t>)
+    void emplace_vector(const Simplex<N - 1, Vectr_space>& right, Vec& vector_ker) const {
+        emplace_vector_all<N + 1, N, gen_vector_t, typename Simplex<N - 1, Vectr_space>::gen_vector_t, Vec>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
-
-    Simplex& operator + (Simplex& other) {
+    Simplex& operator + (const Simplex& other) {
         plus_all<N + 1, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
         fusion::for_each(simplex_vertex, [&other](auto& x) {
+//            std::cout << boost::typeindex::type_id_with_cvr<decltype(x)>().pretty_name() << "\n";
             x *= other;
         });
         return *this;
@@ -144,10 +146,10 @@ public:
     bool operator != (const Simplex& other) const {
         return !this->operator==( other );
     }
-    friend bool operator != (const Simplex& left, const Simplex<N - 1, T>& right) {
+    friend bool operator != (const Simplex& left, const Simplex<N - 1, Vectr_space>& right) {
         int predicate_index{};
-        Simplex<N, T> sd;
-        predicateN_all<N + 1, N, typename Simplex::gen_vector_t, typename Simplex<N - 1, T>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
+        Simplex<N, Vectr_space> sd;
+        predicateN_all<N + 1, N, typename Simplex::gen_vector_t, typename Simplex<N - 1, Vectr_space>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
         if(predicate_index >= N*(N + 1))
             return true;
         else return false;
@@ -159,14 +161,15 @@ public:
         return o;
     }
 };
-template<typename T>
-struct Simplex<2, T> {
+template<typename Vectr_space>
+struct Simplex<2, Vectr_space> {
     static constexpr bool value = true;
-    using value_type = T;
-    using ring_type  = typename T::value_type;
-    using simpl_type = Simplex<1, T>;
+    using space_type = Vectr_space;
+    using ring_type  = typename Vectr_space::ring_type;
+    using simpl_type = Simplex<1, Vectr_space>;
+    using vector_empl_t  = std::vector<std::set<typename space_type::base_type>>;
     static constexpr int dim = 2;
-    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<T>, 3>;
+    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<Vectr_space>, 3>;
 private:
 
     using gen_vector_simpl_t = boost::mp11::mp_repeat_c<fusion::vector<simpl_type>, 3>;
@@ -174,7 +177,7 @@ private:
     gen_vector_simpl_t sub_simplex;
 public:
     Simplex(){}
-    template<typename F, std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>* = nullptr>
+    template<typename F, std::enable_if_t<std::is_same_v<Vectr_space, remove_cvref_t<F>>>* = nullptr>
     Simplex(F&& arg1, F&& arg2, F&& arg3) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                             std::forward<F>(arg2),
                                                                             std::forward<F>(arg3))) {
@@ -202,9 +205,9 @@ public:
             return true;
         else return false;
     }
-    template<typename Vec>
-    void emplace_vector(const Simplex<1, T>& right, Vec& vector_ker) const {
-        emplace_vector_all<3, 2, gen_vector_t, typename Simplex<1, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    template<typename Vec> requires (std::is_same_v<Vec, vector_empl_t>)
+    void emplace_vector(const Simplex<1, Vectr_space>& right, Vec& vector_ker) const {
+        emplace_vector_all<3, 2, gen_vector_t, typename Simplex<1, Vectr_space>::gen_vector_t, Vec>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
 
@@ -229,9 +232,9 @@ public:
     bool operator != (const Simplex& other) const {
         return !this->operator==( other );
     }
-    friend bool operator != (const Simplex& left, const Simplex<1, T>& right) {
+    friend bool operator != (const Simplex& left, const Simplex<1, Vectr_space>& right) {
         int predicate_index{};
-        predicateN_all<3, 2, typename Simplex::gen_vector_t, typename Simplex<1, T>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
+        predicateN_all<3, 2, typename Simplex::gen_vector_t, typename Simplex<1, Vectr_space>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
         if(predicate_index >= 2*3)
             return true;
         else return false;
@@ -243,14 +246,15 @@ public:
         return o;
     }
 };
-template<typename T>
-struct Simplex<1, T> {
+template<typename Vectr_space>
+struct Simplex<1, Vectr_space> {
     static constexpr bool value = true;
-    using value_type = T;
-    using ring_type  = typename T::value_type;
-    using simpl_type = Simplex<0, T>;
+    using space_type = Vectr_space;
+    using ring_type  = typename Vectr_space::ring_type;
+    using simpl_type = Simplex<0, Vectr_space>;
+    using vector_empl_t  = std::vector<std::set<typename space_type::base_type>>;
     static constexpr int dim = 1;
-    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<T>, 2>;
+    using gen_vector_t = boost::mp11::mp_repeat_c<fusion::vector<Vectr_space>, 2>;
 private:
 
     using gen_vector_simpl_t = boost::mp11::mp_repeat_c<fusion::vector<simpl_type>, 2>;
@@ -258,7 +262,7 @@ private:
     gen_vector_simpl_t sub_simplex;
 public:
     Simplex(){}
-    template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
+    template<typename F, typename = std::enable_if_t<std::is_same_v<Vectr_space, remove_cvref_t<F>>>>
     Simplex(F&& arg1, F&& arg2) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1),
                                                                   std::forward<F>(arg2))) {
         for_all<2, 2, gen_vector_simpl_t, gen_vector_t, simpl_type>(sub_simplex, simplex_vertex);
@@ -284,13 +288,13 @@ public:
             return true;
         else return false;
     }
-    template<typename Vec>
-    void emplace_vector(const Simplex<0, T>& right, Vec& vector_ker) const {
-        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<0, T>::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+    template<typename Vec> requires (std::is_same_v<Vec, vector_empl_t>)
+    void emplace_vector(const Simplex<0, Vectr_space>& right, Vec& vector_ker) const {
+        emplace_vector_all<2, 1, gen_vector_t, typename Simplex<0, Vectr_space>::gen_vector_t, Vec>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
 
-    Simplex& operator + (Simplex& other) {
+    Simplex& operator + (const Simplex& other) {
         plus_all<2, gen_vector_t>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
@@ -311,9 +315,9 @@ public:
     bool operator != (const Simplex& other) const {
         return !this->operator==( other );
     }
-    friend bool operator != (const Simplex& left, const Simplex<0, T>& right) {
+    friend bool operator != (const Simplex& left, const Simplex<0, Vectr_space>& right) {
         int predicate_index{};
-        predicateN_all<2, 1, typename Simplex::gen_vector_t, typename Simplex<0, T>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
+        predicateN_all<2, 1, typename Simplex::gen_vector_t, typename Simplex<0, Vectr_space>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
         if(predicate_index == 1)
             return true;
         else return false;
@@ -325,28 +329,29 @@ public:
         return o;
     }
 };
-template<typename T>
-struct Simplex<0, T> {
+template<typename Vectr_space>
+struct Simplex<0, Vectr_space> {
     static constexpr bool value = true;
-    using value_type = T;
-    using ring_type  = typename T::value_type;
-    using simpl_type = Simplex<-1, T>;
+    using space_type = Vectr_space;
+    using ring_type  = typename Vectr_space::ring_type;
+    using simpl_type = Simplex<-1, Vectr_space>;
+    using vector_empl_t  = std::vector<std::set<typename space_type::base_type>>;
     static constexpr int dim = 0;
-    using gen_vector_t = fusion::vector<T>;
+    using gen_vector_t = fusion::vector<Vectr_space>;
 private:
-    fusion::vector<T> simplex_vertex;
+    fusion::vector<Vectr_space> simplex_vertex;
     fusion::vector<simpl_type> sub_simplex;
 public:
     Simplex(){}
-    template<typename F, typename = std::enable_if_t<std::is_same_v<T, remove_cvref_t<F>>>>
+    template<typename F, typename = std::enable_if_t<std::is_same_v<Vectr_space, remove_cvref_t<F>>>>
     Simplex(F&& arg1) : simplex_vertex(fusion::make_vector(std::forward<F>(arg1))) {
-        for_all<1, 1, fusion::vector<simpl_type>, fusion::vector<T>, simpl_type>(sub_simplex, simplex_vertex);
+        for_all<1, 1, fusion::vector<simpl_type>, fusion::vector<Vectr_space>, simpl_type>(sub_simplex, simplex_vertex);
 //        sub_simplex = fusion::make_vector(simpl_type(arg1));
     }
     Simplex(Simplex const& simpl) : simplex_vertex(simpl.simplex_vertex) {
-        for_all<1, 1, fusion::vector<simpl_type>, fusion::vector<T>, simpl_type>(sub_simplex, simplex_vertex);
+        for_all<1, 1, fusion::vector<simpl_type>, fusion::vector<Vectr_space>, simpl_type>(sub_simplex, simplex_vertex);
     }
-    fusion::vector<T> const& get_simplex() const {
+    fusion::vector<Vectr_space> const& get_simplex() const {
         return simplex_vertex;
     }
     boundary_chain<0, fusion::vector<simpl_type>>  boundary() {
@@ -365,14 +370,14 @@ public:
             return true;
         else return false;
     }
-    template<typename Vec>
+    template<typename Vec> requires (std::is_same_v<Vec, vector_empl_t>)
     void emplace_vector(const Simplex/*<-1, T>*/& right, Vec& vector_ker) const {
-        emplace_vector_all<1, 1, gen_vector_t, typename Simplex::gen_vector_t>(simplex_vertex, right.get_simplex(), vector_ker);
+        emplace_vector_all<1, 1, gen_vector_t, typename Simplex::gen_vector_t, Vec>(simplex_vertex, right.get_simplex(), vector_ker);
     }
     //operators==================================================================
 
-    Simplex& operator + (Simplex& other) {
-        plus_all<1, fusion::vector<T>>(simplex_vertex, other.simplex_vertex);
+    Simplex& operator + (const Simplex& other) {
+        plus_all<1, fusion::vector<Vectr_space>>(simplex_vertex, other.simplex_vertex);
         return *this;
     }
     Simplex& operator * (ring_type other) {
@@ -389,9 +394,9 @@ public:
             return true;
         else return false;
     }
-    friend bool operator == (const Simplex<0, T>& left, const Simplex<-1, T>& right) {
+    friend bool operator == (const Simplex<0, Vectr_space>& left, const Simplex<-1, Vectr_space>& right) {
         int predicate_index{};
-        predicateN_all<1, 0, typename Simplex<0, T>::gen_vector_t, typename Simplex<-1, T>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
+        predicateN_all<1, 0, typename Simplex<0, Vectr_space>::gen_vector_t, typename Simplex<-1, Vectr_space>::gen_vector_t>(left.simplex_vertex, right.get_simplex(), predicate_index);
         if(predicate_index == 0)
             return true;
         else return false;
@@ -407,15 +412,16 @@ public:
         return o;
     }
 };
-template<typename T>
-struct Simplex<-1, T> {
+template<typename Vectr_space>
+struct Simplex<-1, Vectr_space> {
     static constexpr bool value = true;
-    using value_type = T;
-    using ring_type  = typename T::value_type;
+    using space_type = Vectr_space;
+    using ring_type  = typename Vectr_space::ring_type;
+    using vector_empl_t  = std::vector<std::set<typename space_type::base_type>>;
     static constexpr int dim = -1;
-    using gen_vector_t = fusion::vector<T>;
+    using gen_vector_t = fusion::vector<Vectr_space>;
     Simplex(){}
-    template<typename F, typename = std::enable_if_t<std::is_same_v<T, F>>>
+    template<typename F, typename = std::enable_if_t<std::is_same_v<Vectr_space, F>>>
     Simplex(F arg1 = F())  {
 //        std::cout << "AUGUMENTACIA" << std::endl;
     }
@@ -428,7 +434,7 @@ struct Simplex<-1, T> {
     Simplex& operator * (ring_type other) {
         return *this;
     }
-    Simplex& operator + (Simplex& other) {
+    Simplex& operator + (const Simplex& other) {
         return *this;
     }
     bool operator != (const Simplex& other) const {

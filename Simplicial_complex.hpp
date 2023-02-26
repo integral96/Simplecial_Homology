@@ -27,7 +27,6 @@
 #include <variant>
 #include <any>
 #include <cmath>
-#include <set>
 
 #include "Simplex.hpp"
 #include "Vector_space.hpp"
@@ -134,8 +133,8 @@ inline constexpr auto boundary(const Complex& chain) {
     constexpr size_t tupleSize = decltype(hana::size(std::declval<Complex>()))::value;
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Complex>()))
-                                        >::value_type Vector_type;
-    using ring_type = typename Vector_type::value_type;
+                                        >::space_type Vector_type;
+    using ring_type = typename Vector_type::ring_type;
 //    auto const& ti = BOOST_CORE_TYPEID(Vector_type);
 //    std::cout << boost::core::demangled_name(ti) << std::endl;
 //    std::cout << "Количество симплексов размерности: " << N << "; равно: " << tupleSize << '\n';
@@ -158,7 +157,7 @@ inline constexpr auto boundary(const Complex& chain) {
             int p = 0;
             auto dth = fusion::at<mpl::int_<0>>(tnp);
             fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
-                auto z_tmp = z*ring_type(std::pow(-1, j));
+                const auto& z_tmp = z*ring_type(std::pow(-1, j));
                 if(z_tmp != dth) {
                     dth += z_tmp;
                 }
@@ -186,12 +185,16 @@ inline constexpr auto boundary(const Complex& chain) {
             int p = 0;
             auto dth = fusion::at<mpl::int_<0>>(tnp);
             fusion::for_each(tnp, [&dth, j = p](auto& z) mutable {
-                auto z_tmp = z*std::pow(-1, j);
+                const auto& z_tmp = z*ring_type(std::pow(-1, j));
+//                std::cout << boost::typeindex::type_id_with_cvr<decltype(z)>().pretty_name() << "\n";
                 if(z_tmp != dth) {
                     dth = dth + z_tmp;
+//                    std::cout << z_tmp << "; index = " << j << "\n";
                 }
                 ++j;
+
             });
+//            std::cout << dth << "\n";
             vector.emplace_back(dth);
         });
         return unpack_to_tuple(vector, std::make_index_sequence<tupleSize>());
@@ -215,9 +218,9 @@ inline constexpr auto quotient(const Ker& ker, const Im& im) {
                                         > Simplex_type;
     typedef typename std::remove_cvref_t<
                                         decltype(hana::front(std::declval<Im>()))
-                                        >::value_type Vector_type;
+                                        >::space_type Vector_type;
     using subsimplex_type = Simplex<Simplex_type::dim, Vector_type>;
-    using group_type = std::set<typename Vector_type::value_type>;
+    using group_type = std::set<typename Vector_type::base_type>;
 //    auto const& ti = BOOST_CORE_TYPEID(Simplex_type);
 //    std::cout << boost::core::demangled_name(ti) << "; " << Simplex_type::dim << std::endl;
 //    hana::for_each(ker, print_type(std::cout));
