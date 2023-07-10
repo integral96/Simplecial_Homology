@@ -4,37 +4,67 @@
 #include <base_math.hpp>
 #include <boost/hana/set.hpp>
 #include <boost/hana/difference.hpp>
+#include <boost/hana/mult.hpp>
 
 namespace hana = boost::hana;
 namespace mpl  = boost::mpl;
+template<char C> requires (C == 'e' || C == 'i' || C == 'j' || C == 'k' || C == 'l')
+struct quaternion {};
+template<>
+struct quaternion<'e'> {
+    static constexpr char ord = 'e';
+    static constexpr auto value = hana::make_tuple(hana::int_c<1>, hana::int_c<1>, hana::int_c<1>, hana::int_c<1>);
+};
+template<>
+struct quaternion<'i'> {
+    static constexpr char ord = 'i';
+    static constexpr auto value = hana::make_tuple(hana::int_c<1>, hana::int_c<0>, hana::int_c<0>, hana::int_c<0>);
+};
+template<>
+struct quaternion<'j'> {
+    static constexpr char ord = 'j';
+    static constexpr auto value = hana::make_tuple(hana::int_c<0>, hana::int_c<1>, hana::int_c<0>, hana::int_c<0>);
+};
+template<>
+struct quaternion<'k'> {
+    static constexpr char ord = 'k';
+    static constexpr auto value = hana::make_tuple(hana::int_c<0>, hana::int_c<0>, hana::int_c<1>, hana::int_c<0>);
+};
+template<>
+struct quaternion<'l'> {
+    static constexpr char ord = 'l';
+    static constexpr auto value = hana::make_tuple(hana::int_c<0>, hana::int_c<0>, hana::int_c<0>, hana::int_c<1>);
+};
 
-template<int N, typename Field>
+template<class left, class right>
+struct mult : mpl::if_c<left::ord == right::ord, quaternion<'e'>,
+                        typename mpl::if_c<left::ord == 'i' && right::ord == 'j', quaternion<'k'>,
+                        typename mpl::if_c<left::ord == 'e', quaternion<right::ord>, quaternion<left::ord>>::type
+                        >::type
+
+                        >::type {
+};
+
+
+template<typename ...Args>
+inline constexpr auto make_group(Args&&... args) {
+    return hana::make<hana::tuple_tag>(std::forward<Args>(args)...);
+}
+template<int N, typename Grp_type> requires (N == decltype(hana::size(std::declval<Grp_type>()))::value)
 class group_comm {
-    using value_type = Field;
-    using group_type = boost::mp11::mp_repeat_c<hana::set<hana::type<Field>>, N>;
-    group_type group_;
+    using value_type = Grp_type;
+    Grp_type group_;
 public:
     group_comm() {}
-    template<typename ...Args, std::enable_if_t<(sizeof... (Args) == N) && is_same_v_<Field, remove_cvref_t<Args>...>>* = nullptr>
-    group_comm(Args&&... args) : group_(hana::make_set(hana::make_type(std::forward<Args>(args))...)) {
+    group_comm(const Grp_type& grp) : group_(grp) {
 
     }
-    template<int M, typename Field1> requires (std::is_same_v<Field1, Field> && M <= N)
-    group_comm(const group_comm<M, Field1>& other) : group_(other.group_) {
 
-    }
-    template<int M, typename Field1> requires (std::is_same_v<Field1, Field> && M <= N)
-    auto difference(const group_comm<M, Field1>& other) const {
-        return hana::difference(group_, other.get_group());
-    }
-    const group_type& get_group() const {
-        return group_;
-    }
     friend std::ostream& operator << (std::ostream& out, const group_comm& cmpl) {
         out << "<";
-        hana::for_each(cmpl.group_, [&](auto x) {
-            static std::string name = boost::core::demangle(typeid(x).name());
-            std::cout << name << std::endl;
+        hana::for_each(cmpl.group_, [](const auto& x) {
+//            static std::string name = boost::core::demangle(typeid(x).name());
+            std::cout << x << " ";
         });
         out << ">";
         return out;

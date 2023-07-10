@@ -53,29 +53,109 @@ struct Simplex;
 template<size_t N, typename T>
 class Vector_space;
 
-using quaternon_type = std::array<int, 4>;
+template<int N>
+class quaternon_type;
 
-inline quaternon_type operator*(const quaternon_type& arr, int val) {
-    quaternon_type tmp_qv;
-    for(size_t i = 0; i < arr.size(); ++i) tmp_qv[i] = arr[i]*val;
-    return tmp_qv;
+//template<int N>
+//using quaternon_type = std::array<int, N>;
+
+template <int N, int I, class Closure> requires (I == N)
+constexpr void is_meta_loop(Closure& closure) {}
+
+template <int N, int I, class Closure> requires (I < N)
+constexpr void is_meta_loop(Closure& closure) {
+    closure.template apply<I>();
+    is_meta_loop<N, I + 1>(closure);
+}
+template <int N, class Closure>
+constexpr void meta_loop(Closure& closure) {
+    is_meta_loop<N, 0>(closure);
 }
 
-inline quaternon_type& operator*=(quaternon_type& arr, int val) {
-    for(size_t i = 0; i < arr.size(); ++i) arr[i] *= val;
-    return arr;
-}
-inline quaternon_type& operator+=(quaternon_type& arr, const quaternon_type& other) {
-    for(size_t i = 0; i < arr.size(); ++i) arr[i] = arr[i] + other[i];
-    return arr;
-}
-
-std::ostream& operator << (std::ostream& o, const quaternon_type& s) {
-    for(const auto& x : s) {
-        if(x != 0) o << x;
+template<int N>
+struct quaternon_prod_scalar {
+    quaternon_prod_scalar(const quaternon_type<N>& arr_, quaternon_type<N>& res_, int val) :
+        arr(arr_), res(res_), val(val) {}
+    template <int I>
+    void apply() {
+        res[I] = arr[I]*val;
     }
-    return o;
-}
+private:
+    const quaternon_type<N>& arr;
+    quaternon_type<N>& res;
+    int val;
+};
+template<int N>
+struct quaternon_prod_self {
+    quaternon_prod_self(quaternon_type<N>& arr_, int val) :
+        arr(arr_), val(val) {}
+    template <int I>
+    void apply() {
+        arr[I] *= val;
+    }
+private:
+    quaternon_type<N>& arr;
+    int val;
+};
+template<int N>
+struct quaternon_sum {
+    quaternon_sum(const quaternon_type<N>& arr_, quaternon_type<N>& res_) :
+        arr(arr_), res(res_) {}
+    template <int I>
+    void apply() {
+        res[I] += arr[I];
+    }
+private:
+    const quaternon_type<N>& arr;
+    quaternon_type<N>& res;
+};
+template<int N>
+struct quaternon_pow {
+    quaternon_pow(const quaternon_type<N>& arr_, typename quaternon_type<N>::value_type& tmp_) :
+        arr(arr_), tmp(tmp_) {}
+    template <int I>
+    void apply() {
+        tmp += arr[I]*arr[I];
+    }
+private:
+    const quaternon_type<N>& arr;
+    typename quaternon_type<N>::value_type& tmp;
+};
+
+template<int N>
+class quaternon_type : public std::array<int, N> {
+public:
+    template<typename ...Args, std::enable_if_t<(sizeof... (Args) == N)>* = nullptr>
+    quaternon_type(Args&&... args) : std::array<int, N>{std::forward<Args>(args)...} {}
+    quaternon_type() : std::array<int, N>{} {}
+    friend inline quaternon_type<N> operator*(const quaternon_type<N>& arr, int val) {
+        quaternon_type<N> tmp_qv;
+        quaternon_prod_scalar<N> closure(arr, tmp_qv, val);
+        meta_loop<N>(closure);
+        return tmp_qv;
+    }
+
+    friend inline quaternon_type<N>& operator*=(quaternon_type<N>& arr, int val) {
+        quaternon_prod_self<N> closure(arr, val);
+        meta_loop<N>(closure);
+        return arr;
+    }
+
+    friend inline quaternon_type<N>& operator+=(quaternon_type<N>& arr, const quaternon_type<N>& other) {
+        quaternon_sum<N> closure(other, arr);
+        meta_loop<N>(closure);
+        return arr;
+    }
+
+    friend inline std::ostream& operator << (std::ostream& o, const quaternon_type<N>& s) {
+        for(const auto& x : s) {
+            if(x != 0) o << x;
+        }
+        return o;
+    }
+};
+
+
 
 template<typename Simplex, class = bool>
 struct IsSimplex : mpl::false_ {};
@@ -92,18 +172,7 @@ struct remove_cvref {
 template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
-template <int N, int I, class Closure> requires (I == N)
-constexpr void is_meta_loop(Closure& closure) {}
 
-template <int N, int I, class Closure> requires (I < N)
-constexpr void is_meta_loop(Closure& closure) {
-    closure.template apply<I>();
-    is_meta_loop<N, I + 1>(closure);
-}
-template <int N, class Closure>
-constexpr void meta_loop(Closure& closure) {
-    is_meta_loop<N, 0>(closure);
-}
 struct print_ {
     std::ostream& o_;
     print_(std::ostream& o) : o_(o) {}
@@ -322,9 +391,11 @@ namespace my {
     T consteval  pow_(T const x) {
         return helper<T, N>::pow_(x);
     }
-    inline double norm(const quaternon_type& arr) {
-        double tmp{};
-        for(size_t i = 0; i < arr.size(); ++i) tmp += arr[i]*arr[i];
+    template<int N>
+    inline double norm(const quaternon_type<N>& arr) {
+        typename quaternon_type<N>::value_type tmp{};
+        quaternon_pow<N> closure(arr, tmp);
+        meta_loop<N>(closure);
         return std::sqrt(tmp);
     }
 }
